@@ -2,6 +2,8 @@
 
 ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshelf), the self-hosted audiobook and podcast server. This repository is the **ABS+ app** for Android and iOS, a fork of the [Audiobookshelf app](https://github.com/advplyr/audiobookshelf-app). The optional server add-on, which runs beside an unmodified Audiobookshelf container, is in its own repository: [audiobookshelf-plus-server](https://github.com/Theschwarzwald/audiobookshelf-plus-server).
 
+**[⬇ Download the newest ABS+ app for Android (APK)](https://github.com/Theschwarzwald/audiobookshelf-plus-app/releases/latest/download/ABS-Plus.apk)** · [All releases](https://github.com/Theschwarzwald/audiobookshelf-plus-app/releases)
+
 > ABS+ is an independent, unofficial project. It is not made or supported by the Audiobookshelf team, so please don't send ABS+ issues to them.
 
 ### About this project
@@ -90,7 +92,7 @@ These buttons are hidden for other users, and the server refuses the requests ev
 | Dewey Decimal browsing | ❌ | ✅ | ✅ | ✅ |
 | Stats and reading history | ⚠️ totals | ✅ | ✅ | ✅ |
 | Based on Your Recent Readings | ❌ | ✅ | ✅ | ✅ |
-| Updates from your own server | ❌ | ✅ | ❌ | ➖ |
+| Updates (from your ABS+ server or GitHub) | ❌ | ✅ | ❌ | ➖ |
 
 The iOS column is what the shared code should give an iPhone build. That build has never been made, so none of it is confirmed. For why some features are missing on iOS, see [Why some features aren't on iOS](#why-some-features-arent-on-ios). Features that need an ABS+ server (server transcription, parental controls, Dewey, sync) switch off against a plain Audiobookshelf server.
 
@@ -333,7 +335,9 @@ The ABS+ server runs as a second container next to the **official, unmodified** 
 ### Android app
 
 - **From your ABS+ server:** open `http://<your-server>:13378/abs-plus/app/ABS+.apk` on the phone. The server fetches new builds from the server repository's releases by itself, and the app offers each one as an update.
-- **From GitHub:** download the APK from the Releases page of this repository or of the [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server/releases).
+- **From GitHub:** [download the newest APK](https://github.com/Theschwarzwald/audiobookshelf-plus-app/releases/latest/download/ABS-Plus.apk) (the same file is in the [server repository's releases](https://github.com/Theschwarzwald/audiobookshelf-plus-server/releases)).
+
+After that the app keeps itself up to date: it checks your ABS+ server and GitHub, and offers whichever build is newer. That works on a plain Audiobookshelf server too.
 
 Android asks you to allow installs from that source the first time. The app installs alongside the official Audiobookshelf app.
 

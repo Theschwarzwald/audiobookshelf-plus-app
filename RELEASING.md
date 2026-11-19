@@ -54,7 +54,12 @@ The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Attach it to a r
 Phones connected to an ABS+ server show **Update available** when the server has a newer build. ABS+ servers
 fetch new builds by themselves from the releases of the
 [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server): attach the APK to a release
-there, tagged `v<build>` (for example `v140`), and every ABS+ server picks it up within 12 hours.
+there, tagged `v<build>` (for example `v140`), and every ABS+ server picks it up within 12 hours. Phones also check
+that repository's latest release themselves.
+
+Attach the APK twice: as `ABS-Plus-<build>.apk`, and as `ABS-Plus.apk` (the readmes' download links point at
+`releases/latest/download/ABS-Plus.apk`, which always serves the newest release's file of that name). Do the same
+in this repository's releases.
 
 To put a build on one server straight away, use `publish-app.js` from the server repository:
 
