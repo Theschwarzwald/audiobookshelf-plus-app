@@ -49,12 +49,17 @@ cd android && ./gradlew assembleDebug
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Attach it to a release with
 `gh release create v140 app-debug.apk --target abs-plus`, or on the website under **Releases → Draft a new release**.
 
-## 3. Offer it from your ABS+ server (optional)
+## 3. Offer it from ABS+ servers
 
-Phones connected to an ABS+ server show **Update available** when the server has a newer build:
+Phones connected to an ABS+ server show **Update available** when the server has a newer build. ABS+ servers
+fetch new builds by themselves from the releases of the
+[server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server): attach the APK to a release
+there, tagged `v<build>` (for example `v140`), and every ABS+ server picks it up within 12 hours.
+
+To put a build on one server straight away, use `publish-app.js` from the server repository:
 
 ```bash
-node audiobookshelf-plus/publish-app.js path/to/app.apk 140 "What's new, in a sentence or two"
+node publish-app.js path/to/app.apk 140 "What's new, in a sentence or two"
 ```
 
 `publish-app.js` deploys through Portainer: set your Portainer address in `PORTAINER_URL` (or a

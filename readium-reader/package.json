@@ -1,10 +1,10 @@
 {
   "name": "abs-plus-readium-reader",
   "private": true,
-  "description": "ABS+ read-along view built on the Readium navigator; bundled into static/reader/readium/ (the app) and audiobookshelf-plus/build/server/public/readium.js (the web player)",
+  "description": "ABS+ read-along view built on the Readium navigator; bundled into static/reader/readium/ (the app) and copied into the ABS+ server's build/server/public/ (the web player) when the server repository is checked out next to this one",
   "scripts": {
-    "build": "esbuild src/main.js --inject:src/polyfills.js --bundle --format=iife --target=es2019,chrome80 --minify --outfile=../static/reader/readium/readium.js && node -e \"require('fs').copyFileSync('../static/reader/readium/readium.js', '../audiobookshelf-plus/build/server/public/readium.js')\"",
-    "build:views": "esbuild ../plugins/absplus-shared/web-entry.js --bundle --format=iife --target=es2019,chrome80 --minify --inject:src/polyfills.js --outfile=../audiobookshelf-plus/build/server/public/absplus-views.js"
+    "build": "esbuild src/main.js --inject:src/polyfills.js --bundle --format=iife --target=es2019,chrome80 --minify --outfile=../static/reader/readium/readium.js && node copy-to-server.js ../static/reader/readium/readium.js readium.js",
+    "build:views": "esbuild ../plugins/absplus-shared/web-entry.js --bundle --format=iife --target=es2019,chrome80 --minify --inject:src/polyfills.js --outfile=dist/absplus-views.js && node copy-to-server.js dist/absplus-views.js absplus-views.js"
   },
   "dependencies": {
     "@readium/navigator": "2.15.0",

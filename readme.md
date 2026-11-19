@@ -1,6 +1,6 @@
 # ABS+ (Audiobookshelf Plus)
 
-ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshelf), the self-hosted audiobook and podcast server. It has two parts: an Android app (built on the Audiobookshelf app) and a server add-on that runs beside an unmodified Audiobookshelf container.
+ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshelf), the self-hosted audiobook and podcast server. This repository is the **ABS+ app** for Android and iOS, a fork of the [Audiobookshelf app](https://github.com/advplyr/audiobookshelf-app). The optional server add-on, which runs beside an unmodified Audiobookshelf container, is in its own repository: [audiobookshelf-plus-server](https://github.com/Theschwarzwald/audiobookshelf-plus-server).
 
 > ABS+ is an independent, unofficial project. It is not made or supported by the Audiobookshelf team, so please don't send ABS+ issues to them.
 
@@ -28,7 +28,7 @@ ABS+ app (Android / iOS) ──► ABS+ server :13378 ──► Audiobookshelf (
 ```
 
 - **The app** works with any Audiobookshelf server. Against a plain server, the ABS+ extras that need the server simply stay off (the app detects the server is missing them).
-- **The ABS+ server** (the `audiobookshelf-plus` folder) is **not a modified Audiobookshelf server**. It's a separate, small program in its own container. The stack runs it next to the **official Audiobookshelf image, pulled unchanged** from the Audiobookshelf project. ABS+ sits in front of it on the same port, passes every request through untouched, and adds its own `/api/transcription/*` routes and the web-player add-on. In the browser, the add-on is one extra script added to the pages as they pass through. No Audiobookshelf file is changed, so Audiobookshelf can be updated as usual.
+- **The ABS+ server** ([audiobookshelf-plus-server](https://github.com/Theschwarzwald/audiobookshelf-plus-server)) is **not a modified Audiobookshelf server**. It's a separate, small program in its own container. The stack runs it next to the **official Audiobookshelf image, pulled unchanged** from the Audiobookshelf project. ABS+ sits in front of it on the same port, passes every request through untouched, and adds its own `/api/transcription/*` routes and the web-player add-on. In the browser, the add-on is one extra script added to the pages as they pass through. No Audiobookshelf file is changed, so Audiobookshelf can be updated as usual.
 
 ### You don't need the ABS+ server
 
@@ -320,32 +320,20 @@ How it's planned to work, and what you'll need to know when it arrives:
 - `pages/notebook.vue`, `pages/bookshelf/dewey.vue`, `components/app/ScreenLock.vue`, `components/app/UpdateBanner.vue`: Notebook, Dewey, screen lock, update banner.
 - Build number: `plugins/absPlusBuild.js`. Android `versionCode` = 1000 + build.
 
-The server side is documented in `audiobookshelf-plus/build/README.md`.
+The server side is documented in the [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server).
 
 ## Install
 
 ABS+ needs a running Audiobookshelf server. The app also works against a plain Audiobookshelf server, with the server-side extras switched off.
 
-### Server (Docker / Portainer / TrueNAS)
+### Server (optional)
 
-The ABS+ server runs as a second container next to the **official, unmodified** Audiobookshelf image:
-
-| Container | Port | What it does |
-|---|---|---|
-| `audiobookshelf` (official image) | internal (optionally 13379) | Your library, users, playback and progress, exactly as before. Publishing it on a second port such as 13379 gives a direct way in, to check whether a problem is in ABS+ or in Audiobookshelf |
-| ABS+ (built from `audiobookshelf-plus/build`) | 13378 | Point your apps and browser here. It passes everything through to Audiobookshelf and adds transcription, read along, sync, parental controls, Dewey, stats and the rest |
-
-1. Copy `audiobookshelf-plus/stack.template.yml` and set your library paths. The audiobook folders must be mounted at the **same paths** in both containers.
-2. Build the ABS+ image from `audiobookshelf-plus/build` and deploy the stack (`docker compose up -d --build`, or a Portainer stack).
-3. Sign in once as an Audiobookshelf admin. ABS+ creates its own API key on that first sign-in, so there's no key to paste.
-4. Optional: give the ABS+ container an NVIDIA GPU for faster transcription. Without one it uses the CPU.
-
-Speech models download into the `/models` volume the first time they're needed. The full list of settings, the model table and the update process are in the server readme.
+The ABS+ server runs as a second container next to the **official, unmodified** Audiobookshelf image, on the port your apps use (13378). Everything about installing and running it, including a stack file with placeholders, is in [audiobookshelf-plus-server](https://github.com/Theschwarzwald/audiobookshelf-plus-server).
 
 ### Android app
 
-- **From your server:** once an APK has been published to it (`node publish-app.js ABS+.apk <build> "notes"`), download it from `http://<your-server>:13378/abs-plus/app/ABS+.apk`. After that, the app offers each new build itself.
-- **From this repository:** download the APK from the Releases page.
+- **From your ABS+ server:** open `http://<your-server>:13378/abs-plus/app/ABS+.apk` on the phone. The server fetches new builds from the server repository's releases by itself, and the app offers each one as an update.
+- **From GitHub:** download the APK from the Releases page of this repository or of the [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server/releases).
 
 Android asks you to allow installs from that source the first time. The app installs alongside the official Audiobookshelf app.
 
@@ -378,7 +366,7 @@ brew install android-studio node cocoapods
 
 ### Build
 
-The read-along reader and the views shared with the web player are built first, from `readium-reader`. Its build also copies them into the server folder:
+The read-along reader and the views shared with the web player are built first, from `readium-reader`. If the [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server) is checked out next to this one (or `ABS_PLUS_SERVER_PUBLIC` points at its `build/server/public`), the build also copies them there for the web player:
 
 ```bash
 cd readium-reader
