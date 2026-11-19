@@ -1,30 +1,73 @@
-# Getting the app onto your phone
+# Releasing ABS+
 
-The APK is built by GitHub Actions (this sandbox-free route also works for anyone forking the repo).
+## 1. Raise the build number
 
-1. Put this folder in a GitHub repository (private is fine).
-2. **One time, for installable updates:** make a signing key and add it as secrets:
+Every release needs a new build number, in two places:
+
+- `plugins/absPlusBuild.js`: `export const ABS_PLUS_BUILD = 140`
+- `android/app/build.gradle`: `versionCode 1140` (always 1000 + the build number)
+
+Android only installs a new APK over an old one when its `versionCode` is higher, and the app compares
+`ABS_PLUS_BUILD` with the server's to offer updates.
+
+## 2. Build the APK
+
+### On GitHub (Actions)
+
+The **Release APK** workflow (`.github/workflows/release-apk.yml`) builds the APK and attaches it to a
+GitHub release whenever a tag starting with `v` is pushed.
+
+1. **One time:** forks have Actions switched off. Turn them on under the repository's **Actions** tab.
+   The workflows inherited from the Audiobookshelf app are switched on too; disable any you don't
+   want there (they target the official app's store listings).
+2. **One time, for a signed release build:** make a signing key and add it as repository secrets:
    ```bash
    keytool -genkeypair -v -keystore release.jks -alias abs -keyalg RSA -keysize 2048 -validity 10000
    base64 -w0 release.jks   # copy the output
    ```
    Repository → Settings → Secrets and variables → Actions → New secret:
    `ANDROID_KEYSTORE_BASE64` (the base64 text), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (`abs`),
-   `ANDROID_KEY_PASSWORD`. Keep `release.jks` somewhere safe: updates must be signed with the same key.
-3. Tag a version and push it:
+   `ANDROID_KEY_PASSWORD`. Keep `release.jks` and its passwords safe and out of the repository: every
+   later update must be signed with the same key.
+3. Commit the new build number, then tag and push:
    ```bash
-   git tag v6.0.0 && git push origin v6.0.0
+   git tag v140 && git push origin v140
    ```
-4. Actions → **Release APK** runs (about 10 minutes). The APK appears under **Releases** with a
-   normal download link. Open that page on the phone, download, and install (allow "install unknown
-   apps" for your browser the first time).
+4. The workflow runs for about 10 minutes and the APK appears under **Releases**.
 
-Without the signing secrets you still get an APK (a debug build) under the workflow run's
-**Artifacts**; each one has a different signature, so uninstall the previous one first.
+Without the signing secrets the workflow still builds a debug APK, under the run's **Artifacts**.
 
-Which app it installs as:
-- **Signed release build** (with the secrets): package `com.audiobookshelf.app`, the same as the official
-  Audiobookshelf app, so it *replaces* it. If you have the Play Store version, uninstall it first
-  (Android won't update a store app with a differently signed one); downloads on the phone are lost.
-- **Debug build** (no secrets): package `com.audiobookshelf.app.debug`, installed *next to* the official
-  app, so you can try it without removing anything.
+### On your own computer
+
+Follow *Building from source* in the readme, then build a debug APK:
+
+```bash
+npm run generate && npx cap sync android
+cd android && ./gradlew assembleDebug
+```
+
+The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Attach it to a release with
+`gh release create v140 app-debug.apk --target abs-plus`, or on the website under **Releases → Draft a new release**.
+
+## 3. Offer it from your ABS+ server (optional)
+
+Phones connected to an ABS+ server show **Update available** when the server has a newer build:
+
+```bash
+node audiobookshelf-plus/publish-app.js path/to/app.apk 140 "What's new, in a sentence or two"
+```
+
+`publish-app.js` deploys through Portainer: set your Portainer address in `PORTAINER_URL` (or a
+`~/.portainer_url` file) and your Portainer API key in `~/.portainer_token`.
+
+## Which app it installs as
+
+ABS+ has its own package name, so it installs **next to** the official Audiobookshelf app and never replaces it.
+
+| Build | Package | Notes |
+|---|---|---|
+| Signed release (with the secrets) | `com.audiobookshelf.app.plus` | Updates install over each other as long as they're signed with the same key |
+| Debug (no secrets, or built locally) | `com.audiobookshelf.app.plus.debug` | Each computer or workflow run signs with its own debug key: switching to a build from somewhere else means uninstalling first |
+
+A release build and a debug build are two separate apps on the phone. Transcripts and downloads don't
+carry over between them, although transcripts on the ABS+ server sync back.
