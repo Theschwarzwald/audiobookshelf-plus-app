@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Pages</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: var(--page-bg, #0f0d0c); -webkit-tap-highlight-color: transparent; }
+      #viewport { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+      #viewport.fit-width, #viewport.doc { overflow-y: auto; touch-action: pan-y; }
+      #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+      #stage.anim { transition: opacity 0.15s ease; }
+      .spread { display: flex; justify-content: center; align-items: center; }
+      .fit-width .spread { align-items: flex-start; }
+      .pg { position: relative; flex-shrink: 0; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.15); overflow: hidden; }
+      .pg canvas, .pg img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .night .pg canvas, .night .pg img { filter: invert(1) hue-rotate(180deg); }
+      .mono .pg img, .mono .pg canvas { filter: grayscale(1) contrast(1.15); }
+      .night.mono .pg canvas, .night.mono .pg img { filter: invert(1) grayscale(1) contrast(1.15); }
+      .tl { position: absolute; inset: 0; overflow: hidden; line-height: 1; user-select: text; -webkit-user-select: text; }
+      .tl span { position: absolute; white-space: pre; color: transparent; transform-origin: 0 0; cursor: text; }
+      .tl ::selection { background: rgba(66, 165, 245, 0.4); }
+      .ov { position: absolute; inset: 0; pointer-events: none; }
+      .ov .hl { position: absolute; pointer-events: auto; mix-blend-mode: multiply; border-radius: 2px; }
+      .night .ov .hl { mix-blend-mode: screen; }
+      .ov .ul { position: absolute; pointer-events: auto; border-bottom: 2px solid rgba(255, 82, 82, 0.9); }
+      /* where the narrator adds lines the book doesn't have: a red line, tap to read them */
+      .ov .added-bubble { position: absolute; z-index: 5; max-width: min(20em, 78%); width: max-content; font: 600 13px/1.4 system-ui, Roboto, sans-serif; color: #fff; background: rgba(30, 30, 30, 0.97); border-left: 3px solid #e53935; border-radius: 10px; padding: 8px 11px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); pointer-events: none; white-space: normal; }
+      .ov .added { position: absolute; pointer-events: auto; cursor: pointer; background: #e53935; background-clip: content-box; padding: 0 6px; margin-left: -6px; border-radius: 2px; }
+      /* text the narrator skipped: faded under a veil of the page colour */
+      .ov .skip { position: absolute; background: rgba(255, 255, 255, 0.62); border-bottom: 1px dashed rgba(128, 128, 128, 0.6); }
+      .night .ov .skip { background: rgba(0, 0, 0, 0.55); }
+      .rf ~ .ov .skip { background: rgba(251, 248, 242, 0.62); }
+      .night .rf ~ .ov .skip { background: rgba(18, 18, 18, 0.6); }
+      .ov .ra { position: absolute; background: rgba(255, 196, 0, 0.42); border-radius: 3px; mix-blend-mode: multiply; }
+      .night .ov .ra { mix-blend-mode: screen; background: rgba(255, 196, 0, 0.35); }
+      .ov .find { position: absolute; background: rgba(255, 140, 26, 0.55); border-radius: 2px; animation: flash 2.5s ease forwards; }
+      @keyframes flash { 0%, 70% { opacity: 1 } 100% { opacity: 0 } }
+      .gap { flex-shrink: 0; }
+      #doc .pg { margin: 0 auto 10px; }
+      /* reflowed PDF text */
+      #doc.rf-doc { padding: 0; }
+      #doc .pg.rfp { width: auto; height: auto; margin: 0; box-shadow: none; background: transparent; overflow: visible; }
+      .rf { position: relative; inset: auto; overflow: visible; line-height: 1.65; padding: 6px 20px 14px; font-family: Georgia, 'Noto Serif', serif; font-size: calc(18px * var(--rf-scale, 1)); color: #1d1b19; max-width: 46em; margin: 0 auto; }
+      .rf p { margin: 0 0 0.85em; text-align: left; overflow-wrap: anywhere; }
+      .rf span { position: static; white-space: normal; color: inherit; transform: none; }
+      .rf .rf-empty { opacity: 0.45; font-style: italic; text-align: center; }
+      /* laid out by the server (Docling) */
+      .rf h3 { font-size: 1.15em; font-weight: 700; margin: 1.1em 0 0.6em; line-height: 1.35; }
+      .rf .rf-title { font-size: 1.35em; text-align: center; }
+      .rf .rf-list_item { padding-left: 1.2em; text-indent: -0.8em; margin-bottom: 0.4em; }
+      .rf .rf-caption, .rf .rf-footnote { font-size: 0.85em; opacity: 0.8; }
+      .rf .rf-footnote { border-top: 1px solid rgba(127, 127, 127, 0.25); padding-top: 0.4em; }
+      .rf .rf-code, .rf .rf-formula { font-family: ui-monospace, monospace; font-size: 0.85em; white-space: pre-wrap; }
+      .rfp + .rfp .rf { border-top: 1px solid rgba(127, 127, 127, 0.18); }
+      #viewport.reflow { background: #fbf8f2; }
+      .night #viewport.reflow { background: #121212; }
+      .night .rf { color: #e2ded6; }
+      .spinner { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px; border: 3px solid rgba(128,128,128,0.3); border-top-color: rgba(128,128,128,0.9); border-radius: 50%; animation: spin 0.9s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg) } }
+    </style>
+  </head>
+  <body>
+    <div id="viewport"></div>
+    <script type="module" src="./pages.js"></script>
+  </body>
+</html>

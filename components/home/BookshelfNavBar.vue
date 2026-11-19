@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-9 bg-bg relative">
-    <div id="bookshelf-navbar" class="absolute z-10 top-0 left-0 w-full h-full flex bg-secondary">
+    <div id="bookshelf-navbar" data-tour="shelf-tabs" class="absolute z-10 top-0 left-0 w-full h-full flex bg-secondary">
       <nuxt-link v-for="item in items" :key="item.to" :to="item.to" class="h-full flex-grow flex items-center justify-center" :class="routeName === item.routeName ? 'bg-primary' : 'text-fg-muted'">
         <p v-if="routeName === item.routeName" class="text-sm font-semibold">{{ item.text }}</p>
         <span v-else-if="item.iconPack === 'abs-icons'" class="abs-icons" :class="`icon-${item.icon} ${item.iconClass || ''}`"></span>
@@ -109,6 +109,15 @@ export default {
             icon: 'authors',
             iconClass: 'text-2xl',
             text: this.$strings.ButtonAuthors
+          },
+          // ABS+: browse by subject (Dewey Decimal numbers from the server)
+          {
+            to: '/bookshelf/dewey',
+            routeName: 'bookshelf-dewey',
+            iconPack: 'material-symbols',
+            icon: 'numbers',
+            iconClass: 'text-xl',
+            text: 'Dewey'
           }
         ]
       }

@@ -188,6 +188,7 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
 
   // detach player
   override fun onDestroy() {
+    runCatching { LockscreenPlayer.unregister(this) }
     try {
       val connectivityManager =
               getSystemService(ConnectivityManager::class.java) as ConnectivityManager
@@ -223,6 +224,8 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
     Log.d(tag, "onCreate")
     super.onCreate()
     ctx = this
+    // ABS+: the lock-screen transcription view (artwork + the narrated line) when the screen turns off
+    runCatching { LockscreenPlayer.register(this) }
 
     // Initialize Paper
     DbManager.initialize(ctx)
@@ -308,7 +311,7 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
     // player's own state on media item transitions/timeline changes, dropping the cover art
     // bitmap that PlaybackSession.resolveCoverBitmapAsync resolves separately.
     mediaSessionConnector.setMediaMetadataProvider { _ ->
-      currentPlaybackSession?.getMediaMetadataCompat(ctx) ?: MediaMetadataCompat.Builder().build()
+      LockscreenPlayer.withLine(currentPlaybackSession?.getMediaMetadataCompat(ctx) ?: MediaMetadataCompat.Builder().build())
     }
     val queueNavigator: TimelineQueueNavigator =
             object : TimelineQueueNavigator(mediaSession) {
@@ -428,7 +431,14 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
     if (!isStarted) {
       Log.i(tag, "preparePlayer: foreground service not started - Starting service --")
       Intent(ctx, PlayerNotificationService::class.java).also { intent ->
-        ContextCompat.startForegroundService(ctx, intent)
+        // ABS+: Android refuses to start a foreground service while the app is in the background (e.g. playback
+        // started with the screen off). That used to crash the whole app; now the book is loaded and plays
+        // once the app is back in front (the media buttons and notification still work).
+        try {
+          ContextCompat.startForegroundService(ctx, intent)
+        } catch (e: IllegalStateException) {
+          Log.w(tag, "preparePlayer: couldn't start the player service from the background (${e.message})")
+        }
       }
     }
 
@@ -494,6 +504,8 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
 
     if (mPlayer == currentPlayer) {
       val mediaSource: MediaSource
+      // ABS+: the same source settings for every file of a multi-file book (exact MP3 seeking included)
+      var progressiveFactory: ProgressiveMediaSource.Factory? = null
 
       if (playbackSession.isLocal) {
         AbsLogger.info("PlayerNotificationService", "preparePlayer: Playing local item ${currentPlaybackSession?.mediaItemId}.")
@@ -502,15 +514,14 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
         val extractorsFactory = DefaultExtractorsFactory()
         extractorsFactory.setConstantBitrateSeekingEnabled(true)
 
-        if (DeviceManager.deviceData.deviceSettings?.enableMp3IndexSeeking == true) {
+        if (DeviceManager.deviceData.deviceSettings?.enableMp3IndexSeeking == true || hasTranscript(playbackSession)) {
           // @see
           // https://exoplayer.dev/troubleshooting.html#why-is-seeking-inaccurate-in-some-mp3-files
           extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
         }
 
-        mediaSource =
-                ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
-                        .createMediaSource(mediaItems[0])
+        progressiveFactory = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
+        mediaSource = progressiveFactory.createMediaSource(mediaItems[0])
       } else if (!playbackSession.isHLS) {
         AbsLogger.info("PlayerNotificationService", "preparePlayer: Direct playing item ${currentPlaybackSession?.mediaItemId}.")
         val dataSourceFactory = DefaultHttpDataSource.Factory()
@@ -518,16 +529,15 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
         val extractorsFactory = DefaultExtractorsFactory()
         extractorsFactory.setConstantBitrateSeekingEnabled(true)
 
-        if (DeviceManager.deviceData.deviceSettings?.enableMp3IndexSeeking == true) {
+        if (DeviceManager.deviceData.deviceSettings?.enableMp3IndexSeeking == true || hasTranscript(playbackSession)) {
           // @see
           // https://exoplayer.dev/troubleshooting.html#why-is-seeking-inaccurate-in-some-mp3-files
           extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
         }
 
         dataSourceFactory.setUserAgent(channelId)
-        mediaSource =
-                ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
-                        .createMediaSource(mediaItems[0])
+        progressiveFactory = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
+        mediaSource = progressiveFactory.createMediaSource(mediaItems[0])
       } else {
         AbsLogger.info("PlayerNotificationService", "preparePlayer: Playing HLS stream of item ${currentPlaybackSession?.mediaItemId}.")
         val dataSourceFactory = DefaultHttpDataSource.Factory()
@@ -541,7 +551,11 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
 
       // Add remaining media items if multi-track
       if (mediaItems.size > 1) {
-        currentPlayer.addMediaItems(mediaItems.subList(1, mediaItems.size))
+        // files 2+ were added with the player's default settings, so seeking in them was only estimated
+        // (several seconds off in long variable-bitrate MP3s): they get the first file's settings now
+        val pf = progressiveFactory
+        if (pf != null) mPlayer.addMediaSources(mediaItems.subList(1, mediaItems.size).map { pf.createMediaSource(it) })
+        else currentPlayer.addMediaItems(mediaItems.subList(1, mediaItems.size))
         Log.d(tag, "currentPlayer total media items ${currentPlayer.mediaItemCount}")
 
         val currentTrackIndex = playbackSession.getCurrentTrackIndex()
@@ -795,6 +809,25 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
   fun getCurrentTime(): Long {
     return currentPlayer.currentPosition + getCurrentTrackStartOffsetMs()
   }
+
+  /** ABS+: the lock screen media card shows the narrated line (LockscreenPlayer.lockLine) or the book title again */
+  fun refreshLockscreenLine() {
+    runCatching { mediaSessionConnector.invalidateMediaSessionMetadata() }
+    runCatching { playerNotificationManager.invalidate() }
+  }
+
+  /**
+   * ABS+: a book with a transcription seeks MP3s exactly (index seeking). The usual estimate can land several
+   * seconds away from the reported position in long variable-bitrate files, which puts Lyrics, Karaoke, Read
+   * along and the lock-screen line seconds ahead of (or behind) the voice.
+   */
+  private fun hasTranscript(session: PlaybackSession): Boolean = runCatching {
+    val key = session.libraryItemId?.let { if (session.episodeId != null) "$it-${session.episodeId}" else it }
+      ?: session.localLibraryItem?.id?.let { if (session.localEpisodeId != null) "$it-${session.localEpisodeId}" else it }
+      ?: return false
+    val meta = com.audiobookshelf.app.transcription.TranscriptStore(this).getMeta(key)
+    meta != null && meta.status != "none"
+  }.getOrDefault(false)
 
   fun getCurrentTimeSeconds(): Double {
     return getCurrentTime() / 1000.0

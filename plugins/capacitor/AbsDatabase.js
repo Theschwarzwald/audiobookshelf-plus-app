@@ -254,6 +254,10 @@ class AbsDatabaseWeb extends WebPlugin {
     return []
   }
 
+  async updateLocalItemMetadata({ localLibraryItemId, metadata }) {
+    return { changed: false }
+  }
+
   async updateLocalMediaProgressFinished(payload) {
     // { localLibraryItemId, localEpisodeId, isFinished }
     return null

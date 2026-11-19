@@ -60,7 +60,329 @@
     --gradient-minimized-audio-player: linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.9) 20%, rgb(255, 255, 255) 60%);
   }
 
+  /* E-ink (black and white): pure white, black text and borders, nothing in between that would ghost */
+  html[data-theme='eink'] {
+    color: black;
+    --color-bg: 255 255 255;
+    --color-bg-hover: 230 230 230;
+    --color-fg: 0 0 0;
+    --color-fg-muted: 40 40 40;
+    --color-primary: 255 255 255;
+    --color-secondary: 255 255 255;
+    --color-border: 0 0 0;
+    --color-bg-toggle: 255 255 255;
+    --color-bg-toggle-selected: 0 0 0;
+    --color-track-cursor: 0 0 0;
+    --color-track: 160 160 160;
+    --color-track-buffered: 90 90 90;
+    --color-success: 0 0 0;
+    --color-warning: 0 0 0;
+    --color-error: 0 0 0;
+    --gradient-item-page: rgb(255, 255, 255);
+    --gradient-audio-player: rgb(255, 255, 255);
+    --gradient-minimized-audio-player: rgb(255, 255, 255);
+  }
+  html[data-theme='eink-dark'] {
+    color: white;
+    --color-bg: 0 0 0;
+    --color-bg-hover: 40 40 40;
+    --color-fg: 255 255 255;
+    --color-fg-muted: 215 215 215;
+    --color-primary: 0 0 0;
+    --color-secondary: 0 0 0;
+    --color-border: 255 255 255;
+    --color-bg-toggle: 0 0 0;
+    --color-bg-toggle-selected: 255 255 255;
+    --color-track-cursor: 255 255 255;
+    --color-track: 110 110 110;
+    --color-track-buffered: 170 170 170;
+    --gradient-item-page: rgb(0, 0, 0);
+    --gradient-audio-player: rgb(0, 0, 0);
+    --gradient-minimized-audio-player: rgb(0, 0, 0);
+  }
+  /* Colour e-ink (Kaleido / Gallery): e-ink contrast, strong colours kept for buttons and covers */
+  html[data-theme='eink-color'] {
+    color: black;
+    --color-bg: 255 255 255;
+    --color-bg-hover: 230 230 230;
+    --color-fg: 0 0 0;
+    --color-fg-muted: 40 40 40;
+    --color-primary: 255 255 255;
+    --color-secondary: 255 255 255;
+    --color-border: 0 0 0;
+    --color-bg-toggle: 255 255 255;
+    --color-bg-toggle-selected: 255 224 178;
+    --color-track-cursor: 230 81 0;
+    --color-track: 160 160 160;
+    --color-track-buffered: 90 90 90;
+    --gradient-item-page: rgb(255, 255, 255);
+    --gradient-audio-player: rgb(255, 255, 255);
+    --gradient-minimized-audio-player: rgb(255, 255, 255);
+  }
+  html[data-theme='eink-color-dark'] {
+    color: white;
+    --color-bg: 0 0 0;
+    --color-bg-hover: 40 40 40;
+    --color-fg: 255 255 255;
+    --color-fg-muted: 215 215 215;
+    --color-primary: 0 0 0;
+    --color-secondary: 0 0 0;
+    --color-border: 255 255 255;
+    --color-bg-toggle: 0 0 0;
+    --color-bg-toggle-selected: 74 42 0;
+    --color-track-cursor: 255 152 0;
+    --color-track: 110 110 110;
+    --color-track-buffered: 170 170 170;
+    --gradient-item-page: rgb(0, 0, 0);
+    --gradient-audio-player: rgb(0, 0, 0);
+    --gradient-minimized-audio-player: rgb(0, 0, 0);
+  }
+
   body {
     @apply bg-primary
+  }
+
+  /* ---- adapting to the device (classes set by store/device.js) ---- */
+
+  /* E-ink, battery saver, a hot phone, or the system's "reduce motion": no animation */
+  html.reduce-motion *,
+  html.reduce-motion *::before,
+  html.reduce-motion *::after,
+  html[data-theme^='eink'] *,
+  html[data-theme^='eink'] *::before,
+  html[data-theme^='eink'] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* E-ink: no shadows, blur or see-through layers (they turn into grey smudges) */
+  html[data-theme^='eink'] * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  /* E-ink: hard rules and outlines instead of shading, so the parts of the screen stand apart */
+  html[data-theme^='eink'] div:has(> #appbar),
+  html[data-theme^='eink'] #bookshelf-navbar,
+  html[data-theme^='eink'] #bookshelf-toolbar {
+    border-bottom: 2px solid rgb(var(--color-fg));
+  }
+  /* the tabs (Home, Library, Series...): a line between each, the open one underlined */
+  html[data-theme^='eink'] #bookshelf-navbar > a + a {
+    border-left: 2px solid rgb(var(--color-fg));
+  }
+  html[data-theme^='eink'] #bookshelf-navbar > a.bg-primary {
+    border-bottom: 5px solid rgb(var(--color-fg));
+  }
+  /* the home shelves (Continue Listening, Recently Added...): each in an outlined box, the heading ruled off,
+     a short line between shelves, a thin edge on every cover */
+  html[data-theme^='eink'] #bookshelf-wrapper > div > div.py-6 > div.relative {
+    border: 2px solid rgb(var(--color-fg));
+    border-radius: 14px;
+    margin: 0 14px 34px;
+    padding-bottom: 10px;
+    width: auto !important;
+    overflow: visible;
+    position: relative;
+  }
+  html[data-theme^='eink'] #bookshelf-wrapper > div > div.py-6 > div.relative > div:first-child {
+    border-bottom: 4px solid rgb(var(--color-fg));
+    margin-bottom: 12px;
+    padding-top: 12px;
+    padding-bottom: 8px;
+  }
+  html[data-theme^='eink'] #bookshelf-wrapper > div > div.py-6 > div.relative > div:first-child p {
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+  html[data-theme^='eink'] #bookshelf-wrapper > div > div.py-6 > div.relative:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: -19px;
+    border-top: 3px solid rgb(var(--color-fg));
+  }
+  html[data-theme^='eink'] #bookshelf-wrapper > div > div.py-6 > div.relative [id^='book-card-'] div:has(> img) {
+    border: 1.5px solid rgb(var(--color-fg));
+  }
+  /* back / forward 10s: a thin circle around each (smaller on the player card) */
+  html[data-theme^='eink'] .jump-icon > span:first-child,
+  html[data-theme^='eink'] .tp-transport span.text-3xl {
+    border: 2px solid rgb(var(--color-fg));
+    border-radius: 9999px;
+    line-height: 1;
+    padding: 2px;
+    font-size: 1.6rem !important;
+  }
+  html[data-theme^='eink'] .fullscreen .jump-icon > span:first-child {
+    padding: 6px;
+    font-size: inherit !important;
+  }
+  html[data-theme^='eink'] .playerContainer {
+    border-top: 2px solid rgb(var(--color-fg));
+  }
+  html[data-theme^='eink'] .fullscreen .playerContainer {
+    border-top: 0;
+  }
+  html[data-theme^='eink'] [data-tour='tp-search'] {
+    border-bottom: 2px solid rgb(var(--color-fg));
+    padding-bottom: 10px;
+  }
+  /* Read along in the reader keeps the same top bar as Lyrics and Karaoke: the same outlines and rule on e-ink */
+  html[data-theme^='eink'] .ra-top [data-tour='ra-search'] {
+    border-bottom: 2px solid rgb(var(--color-fg));
+    padding-bottom: 10px;
+  }
+  html[data-theme^='eink'] .ra-top [data-tour='ra-search'] > div,
+  html[data-theme^='eink'] .ra-top [data-tour='ra-modes'],
+  html[data-theme^='eink'] [data-tour='tp-search'] > div,
+  html[data-theme^='eink'] [data-tour='tp-views'] > div:first-child {
+    border: 2px solid rgb(var(--color-fg));
+    background: transparent !important;
+  }
+  /* Covers on e-ink. Black and white: a colour-aware grey (layouts/default.vue) with more contrast, so dark covers don't turn
+     into a black block and titles stand out. Colour (Kaleido / Gallery): the colour filter layer washes
+     colours out, so they're made richer and a little brighter to look as they should. */
+  html[data-theme='eink'] img,
+  html[data-theme='eink-dark'] img {
+    filter: url(#absplus-mono) contrast(1.18) brightness(1.04);
+  }
+  /* a line along the bottom of the cover on a book's page: the progress bar reads as a bar on its track */
+  html:is([data-theme='eink'], [data-theme='eink-dark']) .item-cover {
+    border-bottom: 2px solid rgb(var(--color-fg));
+  }
+  html[data-theme='eink-color'] img,
+  html[data-theme='eink-color-dark'] img {
+    filter: saturate(1.55) contrast(1.12) brightness(1.04);
+  }
+  /* E-ink: the selected choice in a row of options (Screen, Theme, Power…) is filled with ink, so its
+     label is the page colour; before, black on black looked blacked out */
+  html[data-theme^='eink'] .toggle-btn.selected {
+    color: rgb(var(--color-bg));
+    font-weight: 700;
+  }
+  html[data-theme^='eink'] .toggle-btn {
+    color: rgb(var(--color-fg));
+  }
+  /* E-ink: no blurred copy of the cover behind it on a book's page (a big grey smudge on the panel) */
+  html[data-theme^='eink'] #coverBg {
+    visibility: hidden;
+  }
+  /* E-ink: no grey layer left on a button after it's tapped (touch keeps :hover) */
+  html[data-theme^='eink'] .btn::before {
+    background-color: transparent !important;
+  }
+  /* Black-and-white e-ink: the coloured buttons (Stream / Play is green, Read is blue, warnings orange)
+     are fixed colours that this panel can only draw as grey dots. Solid ink with page-colour text instead;
+     the outlined, lighter ones (bg-…/15) become a plain outline. */
+  html[data-theme='eink'] :is(.bg-success, .bg-info, .bg-error, .bg-warning, .bg-accent, .bg-successDark),
+  html[data-theme='eink-dark'] :is(.bg-success, .bg-info, .bg-error, .bg-warning, .bg-accent, .bg-successDark) {
+    background-color: rgb(var(--color-fg)) !important;
+    color: rgb(var(--color-bg)) !important;
+    border: 2px solid rgb(var(--color-fg));
+  }
+  html[data-theme='eink'] :is(.bg-success, .bg-info, .bg-error, .bg-warning, .bg-accent) :is(.material-symbols, span, p),
+  html[data-theme='eink-dark'] :is(.bg-success, .bg-info, .bg-error, .bg-warning, .bg-accent) :is(.material-symbols, span, p) {
+    color: rgb(var(--color-bg)) !important;
+  }
+  html[data-theme='eink'] :is([class*='bg-warning/'], [class*='bg-success/'], [class*='bg-error/']),
+  html[data-theme='eink-dark'] :is([class*='bg-warning/'], [class*='bg-success/'], [class*='bg-error/']) {
+    background-color: transparent !important;
+    border: 2px solid rgb(var(--color-fg)) !important;
+  }
+  html[data-theme='eink'] :is(.text-success, .text-info, .text-error, .text-warning, .text-accent),
+  html[data-theme='eink-dark'] :is(.text-success, .text-info, .text-error, .text-warning, .text-accent) {
+    color: rgb(var(--color-fg)) !important;
+  }
+  html[data-theme='eink'] :is(.border-success, .border-info, .border-error, .border-warning),
+  html[data-theme='eink-dark'] :is(.border-success, .border-info, .border-error, .border-warning) {
+    border-color: rgb(var(--color-fg)) !important;
+  }
+  /* Black-and-white e-ink, the rest of Tailwind's colours (yellow progress bars on covers, green loading dots,
+     red error boxes, blue links): strong shades become ink so bars and marks stay clearly visible; the pale
+     ones (50-200) a light grey */
+  html:is([data-theme='eink'], [data-theme='eink-dark']) :is([class*='bg-red-'], [class*='bg-green-'], [class*='bg-blue-'], [class*='bg-yellow-'], [class*='bg-amber-'], [class*='bg-orange-'], [class*='bg-lime-'], [class*='bg-emerald-'], [class*='bg-teal-'], [class*='bg-cyan-'], [class*='bg-sky-'], [class*='bg-indigo-'], [class*='bg-violet-'], [class*='bg-purple-'], [class*='bg-pink-'], [class*='bg-rose-']) {
+    background-color: rgb(var(--color-fg)) !important;
+  }
+  html:is([data-theme='eink'], [data-theme='eink-dark']) :is([class*='-50 '], [class*='-100 '], [class*='-200 '], [class$='-50'], [class$='-100'], [class$='-200']):is([class*='bg-red-'], [class*='bg-green-'], [class*='bg-blue-'], [class*='bg-yellow-'], [class*='bg-orange-'], [class*='bg-amber-']) {
+    background-color: rgb(var(--color-bg-hover)) !important;
+  }
+  html:is([data-theme='eink'], [data-theme='eink-dark']) :is([class*='text-red-'], [class*='text-green-'], [class*='text-blue-'], [class*='text-yellow-'], [class*='text-amber-'], [class*='text-orange-'], [class*='text-teal-'], [class*='text-cyan-'], [class*='text-sky-'], [class*='text-indigo-'], [class*='text-purple-'], [class*='text-pink-'], [class*='text-rose-']) {
+    color: rgb(var(--color-fg)) !important;
+  }
+  html:is([data-theme='eink'], [data-theme='eink-dark']) :is([class*='border-red-'], [class*='border-green-'], [class*='border-blue-'], [class*='border-yellow-'], [class*='border-amber-'], [class*='border-orange-']) {
+    border-color: rgb(var(--color-fg)) !important;
+  }
+  /* …and the safety net: whatever colour is left (colours set in code, cover-placeholder text, pictures,
+     the book in Read along) is drawn in grey. The app's root fills the screen and doesn't scroll, so its
+     fixed bars stay where they are. Toasts sit outside it. */
+  html:is([data-theme='eink'], [data-theme='eink-dark']) #__nuxt,
+  html:is([data-theme='eink'], [data-theme='eink-dark']) .Vue-Toastification__container {
+    filter: grayscale(1);
+  }
+  /* Colour e-ink: the Transcription cards (spelling, progress, text size) are white with a black outline,
+     like boxes on a printed page, instead of grey fills */
+  html:is([data-theme='eink-color'], [data-theme='eink-color-dark']) .tp-card {
+    background-color: transparent !important;
+    border: 1.5px solid rgb(var(--color-fg));
+  }
+  /* Screen lock: the status bar is hidden, its strip stays (views keep their place, see ScreenLock.vue) and is black */
+  html.screen-locked body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--sat, 0px);
+    background: #000;
+    z-index: 2147483000;
+    pointer-events: none;
+  }
+  /* Weaker phones and battery saver: skip expensive blur effects */
+  html.tier-low *,
+  html.low-power * {
+    backdrop-filter: none !important;
+  }
+
+  /* ---- colour vision modes (components/onboarding/colorVision.js), Okabe-Ito palette ---- */
+  html.cvd-protan .text-success, html.cvd-deutan .text-success { color: #0072B2 !important; }
+  html.cvd-protan .bg-success, html.cvd-deutan .bg-success { background-color: #0072B2 !important; }
+  html.cvd-protan .border-success, html.cvd-deutan .border-success { border-color: #0072B2 !important; }
+  html.cvd-protan .text-error, html.cvd-deutan .text-error, html.cvd-tritan .text-error { color: #D55E00 !important; }
+  html.cvd-protan .bg-error, html.cvd-deutan .bg-error, html.cvd-tritan .bg-error { background-color: #D55E00 !important; }
+  html.cvd-protan .border-error, html.cvd-deutan .border-error, html.cvd-tritan .border-error { border-color: #D55E00 !important; }
+  html.cvd-protan .text-warning, html.cvd-deutan .text-warning { color: #E69F00 !important; }
+  html.cvd-protan .bg-warning, html.cvd-deutan .bg-warning { background-color: #E69F00 !important; }
+  html.cvd-protan .text-accent, html.cvd-deutan .text-accent { color: #56B4E9 !important; }
+  html.cvd-protan .bg-accent, html.cvd-deutan .bg-accent { background-color: #56B4E9 !important; }
+  html.cvd-tritan .text-success { color: #009E73 !important; }
+  html.cvd-tritan .bg-success { background-color: #009E73 !important; }
+  html.cvd-tritan .text-warning { color: #CC79A7 !important; }
+  html.cvd-tritan .bg-warning { background-color: #CC79A7 !important; }
+  html.cvd-tritan .text-info { color: #CC79A7 !important; }
+  html.cvd-tritan .bg-info { background-color: #CC79A7 !important; }
+  /* Spelling suggestions: dotted vermilion instead of a red squiggle */
+  html[class*='cvd-'] .t-sugg { text-decoration-color: #D55E00 !important; text-decoration-style: dotted !important; text-decoration-thickness: 2px; }
+  /* No colour: the whole app in greyscale, a little more contrast (on the root element, so fixed layers still work) */
+  html.cvd-mono { filter: grayscale(1) contrast(1.08); }
+
+  /* Desktop mode (DeX, ChromeOS, mouse and keyboard): hover feedback and normal scrollbars */
+  html.pointer-fine button:hover,
+  html.pointer-fine [role='button']:hover {
+    filter: brightness(1.12);
+  }
+  html.ff-desktop ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  html.ff-desktop ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-fg-muted) / 0.45);
+    border-radius: 6px;
+  }
+  html.pointer-fine :focus-visible {
+    outline: 2px solid rgb(var(--color-fg) / 0.7);
+    outline-offset: 2px;
   }
 }

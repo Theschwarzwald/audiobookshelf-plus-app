@@ -1,20 +1,38 @@
 <template>
   <div class="w-full layout-wrapper bg-bg">
+    <!-- Black-and-white e-ink covers (assets/tailwind.css): grey that keeps colours apart, warm colours lighter
+         and cool ones darker (like a photographer's colour filter), instead of plain brightness that turns an
+         orange ship and a blue sky into the same grey -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <filter id="absplus-mono" color-interpolation-filters="sRGB">
+        <feColorMatrix type="matrix" values="0.50 0.62 -0.12 0 0  0.50 0.62 -0.12 0 0  0.50 0.62 -0.12 0 0  0 0 0 1 0" />
+      </filter>
+    </svg>
     <app-appbar />
     <div id="content" class="overflow-hidden relative" :class="isPlayerOpen ? 'playerOpen' : ''">
       <Nuxt :key="currentLang" />
     </div>
     <app-audio-player-container ref="streamContainer" />
+    <app-screen-lock />
     <modals-libraries-modal />
     <modals-playlists-add-create-modal />
     <modals-select-local-folder-modal />
     <modals-rssfeeds-rss-feed-modal />
     <app-side-drawer :key="currentLang" />
     <readers-reader />
+
+    <!-- first start, tutorial, guided tour, "it's been a while" -->
+    <onboarding-first-run-setup v-if="onboarding.showSetup" />
+    <onboarding-tutorial v-else-if="onboarding.showTutorial" />
+    <onboarding-welcome-back v-else-if="onboarding.showWelcomeBack" />
+    <onboarding-coach-tour />
+    <!-- ABS+: "Update available" when the server has a newer build of this app -->
+    <app-update-banner />
   </div>
 </template>
 
 <script>
+import { Transcriber } from '@/plugins/transcriber'
 import { CapacitorHttp } from '@capacitor/core'
 import { AbsLogger } from '@/plugins/capacitor'
 
@@ -30,6 +48,10 @@ export default {
     }
   },
   watch: {
+    $route() {
+      // first time on the home screen / a book's page with the tour on
+      setTimeout(this.tourHere, 800)
+    },
     networkConnected: {
       handler(newVal, oldVal) {
         if (!this.hasMounted) {
@@ -81,6 +103,9 @@ export default {
     }
   },
   computed: {
+    onboarding() {
+      return this.$store.state.onboarding
+    },
     isPlayerOpen() {
       return this.$store.getters['getIsPlayerOpen']
     },
@@ -112,6 +137,13 @@ export default {
     }
   },
   methods: {
+    /** Starts the guided tour for the screen that's showing */
+    tourHere() {
+      if (this.$store.state.showReader) return
+      const name = this.$route.name || ''
+      if (name.startsWith('item-id')) this.$store.dispatch('onboarding/maybeTour', 'item')
+      else this.$store.dispatch('onboarding/maybeTour', 'home')
+    },
     initialStream(stream) {
       if (this.$refs.streamContainer?.audioPlayerReady) {
         this.$refs.streamContainer.streamOpen(stream)
@@ -234,6 +266,11 @@ export default {
       await this.$store.dispatch('libraries/fetch', this.currentLibraryId)
       this.$eventBus.$emit('library-changed')
       this.inittingLibraries = false
+      // Two-way transcript sync with the server's transcription add-on (no-op without it)
+      Transcriber.syncAll()
+      // Send bookmarks made offline
+      this.$store.dispatch('bookmarks/flush')
+      this.$store.dispatch('reader/flushAll')
     },
     async syncLocalSessions(isFirstSync) {
       if (!this.user) {
@@ -349,6 +386,14 @@ export default {
     }
   },
   async mounted() {
+    // What device this is (phone, tablet, foldable, e-ink, desktop, how powerful, battery saver…)
+    this.$store.dispatch('device/init').then(() => this.$store.dispatch('onboarding/init'))
+    // Guided tour of whatever screen is showing ("Show me around" at the end of the tutorial)
+    this.$eventBus.$on('tour:here', this.tourHere)
+    // Bookmarks saved on the phone work offline and sync when connected
+    this.$store.dispatch('bookmarks/init')
+    // E-reader progress, bookmarks and highlights saved offline sync when connected
+    this.$store.dispatch('reader/init')
     this.$eventBus.$on('change-lang', this.changeLanguage)
     document.addEventListener('visibilitychange', this.visibilityChanged)
 

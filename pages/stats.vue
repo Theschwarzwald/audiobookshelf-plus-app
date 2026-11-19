@@ -54,6 +54,9 @@
       </div>
     </div>
 
+    <!-- ABS+: books by day / week / month / year, back to the first session, and books to pick up again -->
+    <stats-reading-history />
+
     <!-- Year in review banner shown at the bottom Feb - Nov -->
     <stats-year-in-review-banner v-if="!showYearInReviewBanner" />
   </div>

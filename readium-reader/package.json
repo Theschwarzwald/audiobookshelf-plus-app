@@ -1,0 +1,17 @@
+{
+  "name": "abs-plus-readium-reader",
+  "private": true,
+  "description": "ABS+ read-along view built on the Readium navigator; bundled into static/reader/readium/ (the app) and audiobookshelf-plus/build/server/public/readium.js (the web player)",
+  "scripts": {
+    "build": "esbuild src/main.js --inject:src/polyfills.js --bundle --format=iife --target=es2019,chrome80 --minify --outfile=../static/reader/readium/readium.js && node -e \"require('fs').copyFileSync('../static/reader/readium/readium.js', '../audiobookshelf-plus/build/server/public/readium.js')\"",
+    "build:views": "esbuild ../plugins/absplus-shared/web-entry.js --bundle --format=iife --target=es2019,chrome80 --minify --inject:src/polyfills.js --outfile=../audiobookshelf-plus/build/server/public/absplus-views.js"
+  },
+  "dependencies": {
+    "@readium/navigator": "2.15.0",
+    "@readium/shared": "2.9.0",
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.5"
+  }
+}

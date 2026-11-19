@@ -36,15 +36,19 @@ export default {
     return {}
   },
   computed: {
+    /** ABS+: the "Based on Your Recent Readings" shelf has a third line under each book (why it's suggested) */
+    reasonSpace() {
+      return this.entities.some((e) => e && e.absplusReason) ? 18 : 0
+    },
     entityPaddingBottom() {
       if (!this.altViewEnabled) return 0
       if (this.type === 'authors') return 10
       else if (this.type === 'series') return 40
-      return 60 * this.sizeMultiplier
+      return (60 + this.reasonSpace) * this.sizeMultiplier
     },
     shelfHeight() {
       if (this.altViewEnabled) {
-        var extraTitleSpace = this.type === 'authors' ? 10 : this.type === 'series' ? 50 : 60
+        var extraTitleSpace = this.type === 'authors' ? 10 : this.type === 'series' ? 50 : 60 + this.reasonSpace
         return this.entityHeight + extraTitleSpace * this.sizeMultiplier
       }
       return this.entityHeight + 40

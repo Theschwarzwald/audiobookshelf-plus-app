@@ -38,6 +38,8 @@
 </template>
 
 <script>
+import { recommend } from '@/plugins/absplus-shared/recommend'
+
 export default {
   props: {},
   data() {
@@ -275,10 +277,22 @@ export default {
         // Only add the local shelf with the same media type
         const localShelves = localCategories.filter((cat) => cat.type === this.currentLibraryMediaType && !cat.localOnly)
         this.shelves.push(...localShelves)
+        // ABS+: "Based on your recent readings", after Continue Listening (fetched on the side, doesn't hold up the page)
+        if (this.currentLibraryMediaType === 'book') this.addRecommendations(this.currentLibraryId)
         console.log('[categories] Server shelves set', this.shelves.length, this.lastServerFetch)
       }
 
       this.isLoading = false
+    },
+    /** ABS+: books you haven't started, like what you've listened to lately (plugins/absplus-shared/recommend.js) */
+    async addRecommendations(libraryId) {
+      const recs = await recommend((path) => this.$nativeHttp.get(path), libraryId).catch(() => [])
+      if (libraryId !== this.currentLibraryId || !recs.length) return
+      const shelf = { id: 'absplus-recommended', label: 'Based on Your Recent Readings', type: 'book', entities: recs.map((r) => ({ ...r.item, absplusReason: r.reason })) }
+      const shelves = this.shelves.filter((sh) => sh.id !== shelf.id)
+      const at = shelves.findIndex((sh) => sh.id === 'continue-listening')
+      shelves.splice(at >= 0 ? at + 1 : 0, 0, shelf)
+      this.shelves = shelves
     },
     libraryChanged() {
       if (this.currentLibraryId) {

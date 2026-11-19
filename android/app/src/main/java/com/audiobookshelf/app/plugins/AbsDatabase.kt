@@ -515,6 +515,41 @@ class AbsDatabase : Plugin() {
     call.resolve(jsobj)
   }
 
+  /**
+   * ABS+: a downloaded book keeps its own copy of the details (title, authors, series, description…) from when
+   * it was downloaded, so edits made on the server never showed for it. Called with the server's current
+   * metadata when the book page loads (or the server says the book changed): { localLibraryItemId, metadata }
+   */
+  @PluginMethod
+  fun updateLocalItemMetadata(call:PluginCall) {
+    val localLibraryItemId = call.getString("localLibraryItemId", "") ?: ""
+    val localLibraryItem = DeviceManager.dbManager.getLocalLibraryItem(localLibraryItemId)
+    val md = call.getObject("metadata")
+    if (localLibraryItem == null || md == null) {
+      call.resolve()
+      return
+    }
+    try {
+      val updated: MediaTypeMetadata = if (localLibraryItem.isPodcast) {
+        jacksonMapper.readValue(md.toString(), PodcastMetadata::class.java)
+      } else {
+        jacksonMapper.readValue(md.toString(), BookMetadata::class.java)
+      }
+      val before = jacksonMapper.writeValueAsString(localLibraryItem.media.metadata)
+      if (jacksonMapper.writeValueAsString(updated) == before) {
+        call.resolve(JSObject().put("changed", false))
+        return
+      }
+      localLibraryItem.media.metadata = updated
+      DeviceManager.dbManager.saveLocalLibraryItem(localLibraryItem)
+      Log.d(tag, "updateLocalItemMetadata: \"${updated.title}\" updated from the server")
+      call.resolve(JSObject().put("changed", true))
+    } catch (e: Exception) {
+      Log.e(tag, "updateLocalItemMetadata failed", e)
+      call.resolve(JSObject().put("changed", false).put("error", e.message))
+    }
+  }
+
   @PluginMethod
   fun updateLocalTrackOrder(call:PluginCall) {
     val localLibraryItemId = call.getString("localLibraryItemId", "") ?: ""

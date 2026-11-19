@@ -5,6 +5,7 @@
 </template>
 
 <script>
+import { Transcriber } from '@/plugins/transcriber'
 import { AbsDownloader } from '@/plugins/capacitor'
 
 export default {
@@ -66,6 +67,16 @@ export default {
       }
 
       this.$store.commit('globals/removeItemDownload', data.libraryItemId)
+      // the transcript comes too, so Lyrics, Karaoke and Read along work offline like the book does
+      if (data.libraryItemId && !data.episodeId) Transcriber.prepare(data.libraryItemId).catch(() => {})
+      // and a PDF's layout (for reflow), kept on the phone
+      if (data.libraryItemId && !data.episodeId)
+        this.$nativeHttp
+          .get(`/api/transcription/items/${encodeURIComponent(data.libraryItemId)}/layout`)
+          .then((res) => {
+            if (res && res.layout && res.layout.pages) localStorage.setItem(`absplus-layout:${data.libraryItemId}`, JSON.stringify(res.layout))
+          })
+          .catch(() => {})
     },
     onDownloadItem(downloadItem) {
       console.log('DownloadProgressIndicator onDownloadItem', JSON.stringify(downloadItem))

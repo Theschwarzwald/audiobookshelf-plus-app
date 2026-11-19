@@ -18,10 +18,10 @@ textarea {
 }
 
 .layout-wrapper {
-  height: calc(100vh - env(safe-area-inset-top));
-  min-height: calc(100vh - env(safe-area-inset-top));
-  max-height: calc(100vh - env(safe-area-inset-top));
-  margin-top: env(safe-area-inset-top);
+  height: calc(100vh - var(--sat, env(safe-area-inset-top)));
+  min-height: calc(100vh - var(--sat, env(safe-area-inset-top)));
+  max-height: calc(100vh - var(--sat, env(safe-area-inset-top)));
+  margin-top: var(--sat, env(safe-area-inset-top));
 }
 
 #content {
@@ -168,4 +168,12 @@ Bookshelf Label
 .tracksTable th {
   padding: 4px 8px;
   font-size: 0.75rem;
+}
+
+/* Pop-up notices: no slide animation when motion is reduced (power saving, e-ink). A near-zero animation left
+   them stuck half-way, below the screen, so no notice showed in those modes. (Here, not in tailwind.css: the
+   library's class names would be trimmed from there.) */
+html.reduce-motion .Vue-Toastification__toast,
+html[data-theme^='eink'] .Vue-Toastification__toast {
+  animation: none !important;
 }

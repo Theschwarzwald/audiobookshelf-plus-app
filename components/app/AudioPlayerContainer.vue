@@ -1,10 +1,10 @@
 <template>
   <div>
-    <app-audio-player ref="audioPlayer" :bookmarks="bookmarks" :sleep-timer-running="isSleepTimerRunning" :sleep-time-remaining="sleepTimeRemaining" :serverLibraryItemId="serverLibraryItemId" @selectPlaybackSpeed="showPlaybackSpeedModal = true" @updateTime="(t) => (currentTime = t)" @showSleepTimer="showSleepTimer" @showBookmarks="showBookmarks" />
+    <app-audio-player ref="audioPlayer" :bookmarks="bookmarks" :sleep-timer-running="isSleepTimerRunning" :sleep-time-remaining="sleepTimeRemaining" :serverLibraryItemId="serverLibraryItemId" @selectPlaybackSpeed="showPlaybackSpeedModal = true" @updateTime="(t) => (currentTime = t)" @showSleepTimer="showSleepTimer" @showBookmarks="showBookmarks" @editBookmark="editBookmark" />
 
     <modals-playback-speed-modal v-model="showPlaybackSpeedModal" :playback-rate.sync="playbackSpeed" @update:playbackRate="updatePlaybackSpeed" @change="changePlaybackSpeed" />
     <modals-sleep-timer-modal v-model="showSleepTimerModal" :current-time="sleepTimeRemaining" :sleep-timer-running="isSleepTimerRunning" :current-end-of-chapter-time="currentEndOfChapterTime" :is-auto="isAutoSleepTimer" @change="selectSleepTimeout" @cancel="cancelSleepTimer" @increase="increaseSleepTimer" @decrease="decreaseSleepTimer" />
-    <modals-bookmarks-modal v-model="showBookmarksModal" :bookmarks="bookmarks" :current-time="currentTime" :library-item-id="serverLibraryItemId" :playback-rate="playbackSpeed" @select="selectBookmark" />
+    <modals-bookmarks-modal v-model="showBookmarksModal" :current-time="currentTime" :library-item-id="bookmarkItemId" :item-key="bookmarkItemId" :playback-rate="playbackSpeed" :edit-target="bookmarkToEdit" @select="selectBookmark" @editDone="bookmarkToEdit = null" />
   </div>
 </template>
 
@@ -23,6 +23,7 @@ export default {
       download: null,
       showPlaybackSpeedModal: false,
       showBookmarksModal: false,
+      bookmarkToEdit: null,
       showSleepTimerModal: false,
       playbackSpeed: 1,
       currentTime: 0,
@@ -42,9 +43,15 @@ export default {
   },
   mixins: [CellularPermissionHelpers],
   computed: {
+    /** Server item id, or the local item id for books only on the phone (bookmarks work offline) */
+    bookmarkItemId() {
+      if (this.serverLibraryItemId) return this.serverLibraryItemId
+      const s = this.currentPlaybackSession
+      if (!s || s.episodeId || s.localEpisodeId) return null
+      return s.libraryItemId || (s.localLibraryItem && s.localLibraryItem.id) || null
+    },
     bookmarks() {
-      if (!this.serverLibraryItemId) return []
-      return this.$store.getters['user/getUserBookmarksForItem'](this.serverLibraryItemId)
+      return this.$store.getters['bookmarks/forItem'](this.bookmarkItemId)
     },
     isIos() {
       return this.$platform === 'ios'
@@ -55,6 +62,12 @@ export default {
   },
   methods: {
     showBookmarks() {
+      this.bookmarkToEdit = null
+      this.showBookmarksModal = true
+    },
+    /** From the "tap to add a note" toast after saving */
+    editBookmark(bm) {
+      this.bookmarkToEdit = bm
       this.showBookmarksModal = true
     },
     selectBookmark(bookmark) {

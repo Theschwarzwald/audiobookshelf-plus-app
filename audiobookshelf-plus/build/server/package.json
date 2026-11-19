@@ -1,0 +1,13 @@
+{
+  "name": "abs-transcription",
+  "version": "1.0.0",
+  "description": "Transcription add-on for Audiobookshelf: server-side speech-to-text, web player Transcription view, and two-way transcript sync with the Android app",
+  "main": "src/index.js",
+  "private": true,
+  "license": "GPL-3.0",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  }
+}

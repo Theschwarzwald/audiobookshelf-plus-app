@@ -1,6 +1,6 @@
 <template>
   <div class="inline-flex toggle-btn-wrapper shadow-md">
-    <button v-for="(item, index) in items" :key="`${name}-${index}`" type="button" class="toggle-btn outline-none relative border border-border px-4 py-1" :class="{ selected: item.value === value }" @click.stop="clickBtn(item.value)">
+    <button v-for="(item, index) in items" :key="`${name}-${index}`" type="button" class="toggle-btn outline-none relative border border-border px-4 py-1" :class="{ selected: item.value === value, 'toggle-off': item.disabled }" :disabled="item.disabled" :aria-disabled="item.disabled ? 'true' : null" @click.stop="!item.disabled && clickBtn(item.value)">
       {{ item.text }}
     </button>
   </div>
@@ -53,6 +53,11 @@ export default {
 .toggle-btn {
   background-color: rgb(var(--color-bg-toggle));
   color: rgb(var(--color-fg) / 0.5);
+}
+.toggle-btn.toggle-off {
+  opacity: 0.35;
+  text-decoration: line-through;
+  cursor: not-allowed;
 }
 .toggle-btn.selected {
   background-color: rgb(var(--color-bg-toggle-selected));

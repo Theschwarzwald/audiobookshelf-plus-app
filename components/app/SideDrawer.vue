@@ -110,6 +110,14 @@ export default {
         })
       }
 
+      // Every highlight, note and bookmark across your books (from Grimmory Reader)
+      items.push({
+        icon: 'menu_book',
+        iconOutlined: true,
+        text: 'Notebook',
+        to: '/notebook'
+      })
+
       if (this.$platform !== 'ios') {
         items.push({
           icon: 'folder',
@@ -130,6 +138,14 @@ export default {
         text: this.$strings.HeaderSettings,
         to: '/settings'
       })
+      // the server's admin settings (Audiobookshelf + the ABS+ pages), inside the app
+      if (this.serverConnectionConfig && this.userIsAdminOrUp) {
+        items.push({
+          icon: 'admin_panel_settings',
+          text: 'Admin settings',
+          to: '/admin'
+        })
+      }
 
       items.push({
         icon: 'bug_report',

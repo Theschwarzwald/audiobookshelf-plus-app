@@ -7,6 +7,13 @@ export const state = () => ({
   currentPlaybackSession: null,
   playerIsPlaying: false,
   playerIsFullscreen: false,
+  // height of the opened player's controls: Read along keeps the book above them (like Lyrics / Karaoke)
+  playerControlsInset: 0,
+  // the playing book's cover colour (the player's gradient): books use it for their buttons and accents
+  coverAccentRgb: null,
+  screenLocked: false,
+  /** the cover colour of the book open in the reader (its buttons), whatever is in the player */
+  readerCoverRgb: null,
   playerIsStartingPlayback: false, // When pressing play before native play response
   playerStartingPlaybackMediaId: null,
   isCasting: false,
@@ -21,6 +28,13 @@ export const state = () => ({
   hasStoragePermission: false,
   selectedLibraryItem: null,
   showReader: false,
+  // Read along with the audiobook put aside (reading mode): the mini player steps out of the way
+  readerBookMode: false,
+  // Read along's top bar (Transcription · modes · search) stays on screen: the book starts below it (px)
+  readerTopInset: 0,
+  // Read along in the full reader: it shows the same play / pause bar as the Transcription panel
+  readerOwnsTransport: false,
+  ereaderReadMode: false,
   ereaderKeepProgress: false,
   ereaderFileId: null,
   showSideDrawer: false,
@@ -152,6 +166,18 @@ export const mutations = {
   setPlayerPlaying(state, val) {
     state.playerIsPlaying = val
   },
+  setReaderCoverRgb(state, rgb) {
+    state.readerCoverRgb = rgb || null
+  },
+  setScreenLocked(state, on) {
+    state.screenLocked = !!on
+  },
+  setCoverAccent(state, rgb) {
+    state.coverAccentRgb = rgb || null
+  },
+  setPlayerControlsInset(state, px) {
+    state.playerControlsInset = Math.max(0, Math.round(Number(px) || 0))
+  },
   setPlayerFullscreen(state, val) {
     state.playerIsFullscreen = val
   },
@@ -194,15 +220,30 @@ export const mutations = {
   setIsNetworkUnmetered(state, val) {
     state.isNetworkUnmetered = val
   },
-  showReader(state, { libraryItem, keepProgress, fileId }) {
+  showReader(state, { libraryItem, keepProgress, fileId, readMode }) {
     state.selectedLibraryItem = libraryItem
     state.ereaderKeepProgress = keepProgress
     state.ereaderFileId = fileId
+    // Read button: the read-along reading mode (bars, contents, dictionary); X then plays from the page
+    state.ereaderReadMode = !!readMode
 
     state.showReader = true
   },
   setShowReader(state, val) {
     state.showReader = val
+    if (!val) {
+      state.readerBookMode = false
+      state.readerOwnsTransport = false
+    }
+  },
+  setReaderOwnsTransport(state, val) {
+    state.readerOwnsTransport = !!val
+  },
+  setReaderTopInset(state, px) {
+    state.readerTopInset = Math.max(0, Math.round(Number(px) || 0))
+  },
+  setReaderBookMode(state, val) {
+    state.readerBookMode = !!val
   },
   setShowSideDrawer(state, val) {
     state.showSideDrawer = val

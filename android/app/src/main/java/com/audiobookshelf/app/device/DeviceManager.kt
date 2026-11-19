@@ -89,6 +89,20 @@ object DeviceManager {
       deviceData.deviceSettings?.androidAutoBrowseSeriesSequenceOrder =
               AndroidAutoBrowseSeriesSequenceOrderSetting.ASC
     }
+
+    // ABS+: exact MP3 seeking on, once, for existing installs too. Without it ExoPlayer guesses positions
+    // in variable-bitrate MP3s from a coarse table (up to ~1% of the file, tens of seconds in a long one),
+    // so transcripts, Karaoke and Read along drift from the audio after a seek or a resume. It can still
+    // be turned off in Settings.
+    runCatching {
+      val book = io.paperdb.Paper.book("absplus")
+      if (book.read("mp3IndexSeekingDefaulted", false) != true) {
+        deviceData.deviceSettings?.enableMp3IndexSeeking = true
+        dbManager.saveDeviceData(deviceData)
+        book.write("mp3IndexSeekingDefaulted", true)
+        Log.i(tag, "Turned on exact MP3 seeking (ABS+ default)")
+      }
+    }
   }
 
   /**

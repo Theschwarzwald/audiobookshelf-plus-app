@@ -91,3 +91,10 @@ sw.*
 
 /resources/
 /android/app/release/
+# sherpa-onnx native libs (downloaded at build time)
+android/app/src/main/jniLibs/
+android/app/src/main/assets/transcription/
+
+# vendored at build time by scripts/fetch-foliate.sh
+static/reader/foliate/
+static/reader/pdfjs/

@@ -8,6 +8,10 @@
     </style>
 
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
+      <!-- ABS+: system dialogs (exit the app, confirmations) get their own theme: the dark android:background below
+           would otherwise paint them black under dark text -->
+      <item name="alertDialogTheme">@style/AbsAlertDialog</item>
+      <item name="android:alertDialogTheme">@style/AbsAlertDialog</item>
       <item name="windowActionBar">false</item>
       <item name="windowNoTitle">true</item>
       <item name="android:background">@color/background_dark</item>
@@ -29,4 +33,9 @@
         <item name="android:padding">?attr/appWidgetPadding</item>
         <item name="android:background">@drawable/app_widget_inner_view_background</item>
     </style>
+
+  <!-- ABS+: readable dialogs, light or dark with the system setting (light on e-ink) -->
+  <style name="AbsAlertDialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+    <item name="android:background">@null</item>
+  </style>
 </resources>

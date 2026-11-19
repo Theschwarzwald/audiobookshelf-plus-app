@@ -104,6 +104,11 @@ class DbService {
     return AbsDatabase.updateLocalTrackOrder(payload)
   }
 
+  // ABS+: { localLibraryItemId, metadata } the server's details onto a downloaded book's own copy
+  updateLocalItemMetadata(payload) {
+    return AbsDatabase.updateLocalItemMetadata(payload)
+  }
+
   // input: { localLibraryItemId:String, localEpisodeId:String, isFinished:Boolean }
   updateLocalMediaProgressFinished(payload) {
     return AbsDatabase.updateLocalMediaProgressFinished(payload)

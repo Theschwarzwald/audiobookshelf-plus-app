@@ -39,6 +39,7 @@ class PlayerListener(var playerNotificationService:PlayerNotificationService) : 
   }
 
   override fun onIsPlayingChanged(isPlaying: Boolean) {
+    if (isPlaying) runCatching { LockscreenPlayer.onPlaying(playerNotificationService) }
     Log.d(tag, "onIsPlayingChanged to $isPlaying | ${playerNotificationService.getMediaPlayer()} | playbackState=${playerNotificationService.currentPlayer.playbackState}")
 
     val player = playerNotificationService.currentPlayer

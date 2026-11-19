@@ -274,12 +274,10 @@ export default ({ store, app }, inject) => {
 
   inject('isValidVersion', isValidVersion)
 
-  // Set theme
-  app.$localStore?.getTheme()?.then((theme) => {
-    if (theme) {
-      document.documentElement.dataset.theme = theme
-    }
-  })
+  // Set theme. "auto" (the default) follows the device: e-ink theme on e-ink readers,
+  // true black on OLED screens in dark mode, light in light mode (see store/device.js)
+  // Appearance: System (default) / Light / Dark; true black under Dark on OLED screens; e-ink versions on e-ink
+  app.$localStore?.getTheme()?.then((theme) => store.dispatch('device/restoreAppearance', theme || 'system'))
 
   // iOS Only
   //  backButton event does not work with iOS swipe navigation so use this workaround
@@ -300,6 +298,7 @@ export default ({ store, app }, inject) => {
 
   // Android only
   App.addListener('backButton', async ({ canGoBack }) => {
+    if (window.__absScreenLocked) return // screen lock: unlock first
     if (store.state.globals.isModalOpen) {
       eventBus.$emit('close-modal')
       return

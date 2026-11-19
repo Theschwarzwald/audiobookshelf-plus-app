@@ -183,7 +183,7 @@ data class DeviceSettings(
               allowSeekingOnMediaControls = false,
               jumpBackwardsTime = 10,
               jumpForwardTime = 10,
-              enableMp3IndexSeeking = false,
+              enableMp3IndexSeeking = true, // ABS+: exact seeking so transcripts line up with the audio
               disableShakeToResetSleepTimer = false,
               shakeSensitivity = ShakeSensitivitySetting.MEDIUM,
               lockOrientation = LockOrientationSetting.NONE,

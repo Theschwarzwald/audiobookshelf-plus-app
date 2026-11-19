@@ -15,6 +15,8 @@
       </div>
       <p class="truncate text-fg-muted" :style="{ fontSize: 0.8 * sizeMultiplier + 'rem' }">{{ displayLineTwo || '&nbsp;' }}</p>
       <p v-if="displaySortLine" class="truncate text-fg-muted" :style="{ fontSize: 0.8 * sizeMultiplier + 'rem' }">{{ displaySortLine }}</p>
+      <!-- ABS+ "Based on Your Recent Readings": why it's suggested -->
+      <p v-if="absplusReason" class="truncate font-semibold" style="color: #e49b4f" :style="{ fontSize: 0.75 * sizeMultiplier + 'rem' }">{{ absplusReason }}</p>
     </div>
 
     <div v-if="seriesSequenceList" class="absolute rounded-lg bg-black bg-opacity-90 box-shadow-md z-20 text-right" :style="{ top: 0.375 * sizeMultiplier + 'rem', right: 0.375 * sizeMultiplier + 'rem', padding: `${0.1 * sizeMultiplier}rem ${0.25 * sizeMultiplier}rem` }" style="background-color: #78350f">
@@ -392,8 +394,13 @@ export default {
     },
     titleDisplayBottomOffset() {
       if (!this.isAltViewEnabled) return 0
-      else if (!this.displaySortLine) return 3 * this.sizeMultiplier
-      return 4.25 * this.sizeMultiplier
+      const reason = this.absplusReason ? 1.15 : 0
+      if (!this.displaySortLine) return (3 + reason) * this.sizeMultiplier
+      return (4.25 + reason) * this.sizeMultiplier
+    },
+    /** ABS+ "Based on Your Recent Readings": the reason shown under the book */
+    absplusReason() {
+      return (this.libraryItem && this.libraryItem.absplusReason) || ''
     },
     showHasLocalDownload() {
       if (this.localLibraryItem || this.isLocal) {

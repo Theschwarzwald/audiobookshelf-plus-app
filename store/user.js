@@ -265,6 +265,13 @@ export const mutations = {
       return bm
     })
   },
+  addBookmark(state, bookmark) {
+    if (!state.user || !bookmark) return
+    if (!state.user.bookmarks) state.user.bookmarks = []
+    const i = state.user.bookmarks.findIndex((bm) => bm.libraryItemId === bookmark.libraryItemId && bm.time === bookmark.time)
+    if (i >= 0) state.user.bookmarks.splice(i, 1, bookmark)
+    else state.user.bookmarks.push(bookmark)
+  },
   deleteBookmark(state, { libraryItemId, time }) {
     if (!state.user?.bookmarks) return
     state.user.bookmarks = state.user.bookmarks.filter((bm) => {

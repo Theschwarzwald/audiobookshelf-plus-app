@@ -1,6 +1,6 @@
 <template>
   <!-- Main container - only shows when playback session exists, applies fullscreen/platform classes -->
-  <div v-if="playbackSession" id="streamContainer" class="fixed top-0 left-0 layout-wrapper right-0 z-50 pointer-events-none" :class="{ fullscreen: showFullscreen, 'ios-player': $platform === 'ios', 'web-player': $platform === 'web' }">
+  <div v-if="playbackSession" v-show="!(($store.state.readerBookMode || $store.state.readerOwnsTransport) && $store.state.showReader && !showFullscreen)" id="streamContainer" class="fixed top-0 left-0 layout-wrapper right-0 z-50 pointer-events-none" :class="{ fullscreen: showFullscreen, 'ios-player': $platform === 'ios', 'web-player': $platform === 'web' }">
     <!-- Fullscreen overlays: colored background and menu overlays -->
     <div v-if="showFullscreen" class="w-full h-full z-10 absolute top-0 left-0 pointer-events-auto" :style="{ backgroundColor: coverRgb }">
       <!-- Background gradient for player -->
@@ -11,6 +11,13 @@
         <span class="material-symbols text-5xl" :class="{ 'text-black text-opacity-75': coverBgIsLight && theme !== 'black' }" @click="collapseFullscreen">keyboard_arrow_down</span>
       </div>
 
+      <!-- Screen lock: dims, stays on, touches do nothing until unlocked -->
+      <div class="top-5 absolute" :class="showCastBtn ? 'right-28' : 'right-16'">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" :style="lockBtnStyle" aria-label="Lock the screen" @click.stop="$eventBus.$emit('screen-lock')">
+          <span class="material-symbols fill text-xl">lock</span>
+        </button>
+      </div>
+
       <!-- Cast button - Chromecast toggle -->
       <div v-show="showCastBtn" class="top-6 right-16 absolute cursor-pointer">
         <span class="material-symbols text-3xl" :class="coverBgIsLight && theme !== 'black' ? 'text-black' : ''" @click="castClick">{{ isCasting ? 'cast_connected' : 'cast' }}</span>
@@ -18,7 +25,7 @@
 
       <!-- Player options menu button -->
       <div class="top-6 right-4 absolute cursor-pointer">
-        <span class="material-symbols text-3xl" :class="{ 'text-black text-opacity-75': coverBgIsLight && theme !== 'black' }" @click="showMoreMenuDialog = true">more_vert</span>
+        <span data-tour="pl-more" class="material-symbols text-3xl" :class="{ 'text-black text-opacity-75': coverBgIsLight && theme !== 'black' }" @click="showMoreMenuDialog = true">more_vert</span>
       </div>
 
       <!-- Playback method indicator (Direct/Local/Transcode) -->
@@ -61,23 +68,32 @@
       <p class="author-text text-fg text-opacity-75 truncate">{{ authorName }}</p>
     </div>
 
+    <!-- Transcription preview card under the artwork (tap to open Transcription) -->
+    <app-transcription-preview v-if="showFullscreen && showTranscriptionBtn && !showTranscription && !$store.state.showReader && transcriptionPreviewBox" class="absolute z-30 pointer-events-auto" :style="transcriptionPreviewBox.style" :compact="transcriptionPreviewBox.compact" :item-key="mediaId" :current-time="currentTime" :is-playing="isPlaying" :playback-rate="currentPlaybackRate" :cover-bg-is-light="cardOnLight" @open="openTranscription" />
+
     <div id="playerContent" class="playerContainer w-full z-20 absolute bottom-0 left-0 right-0 p-2 pointer-events-auto transition-all" :style="{ backgroundColor: showFullscreen ? '' : coverRgb }" @click="clickContainer">
       <!-- Top controls bar - fullscreen only: bookmarks, speed, sleep timer, chapters -->
       <div v-if="showFullscreen" class="absolute bottom-4 left-0 right-0 w-full pb-4 pt-2 mx-auto px-6" style="max-width: 414px">
         <div class="flex items-center justify-between pointer-events-auto">
-          <span v-if="!isPodcast && serverLibraryItemId && socketConnected" class="material-symbols text-3xl text-fg-muted cursor-pointer" :class="{ fill: bookmarks.length }" @click="$emit('showBookmarks')">bookmark</span>
+          <!-- Bookmark: tap = this second, hold = the section you hold through (like Audible's Clip). Works offline. -->
+          <app-bookmark-button v-if="!isPodcast && bookmarkItemId" data-tour="pl-bookmark" size="lg" :library-item-id="bookmarkItemId" :item-key="mediaId" :get-time="getPlayerTime" @edit="(bm) => $emit('editBookmark', bm)" />
           <!-- hidden for podcasts but still using this as a placeholder -->
           <span v-else class="material-symbols text-3xl text-white text-opacity-0">bookmark</span>
 
-          <span class="font-mono text-fg-muted cursor-pointer" style="font-size: 1.35rem" @click="$emit('selectPlaybackSpeed')">{{ currentPlaybackRate }}x</span>
-          <svg v-if="!sleepTimerRunning" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-fg-muted cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" @click.stop="$emit('showSleepTimer')">
+          <span data-tour="pl-speed" class="font-mono text-fg-muted cursor-pointer" style="font-size: 1.35rem" @click="$emit('selectPlaybackSpeed')">{{ currentPlaybackRate }}x</span>
+          <svg v-if="!sleepTimerRunning" data-tour="pl-sleep" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-fg-muted cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" @click.stop="$emit('showSleepTimer')">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
           </svg>
           <div v-else class="h-7 w-7 flex items-center justify-around cursor-pointer" @click.stop="$emit('showSleepTimer')">
             <p class="text-xl font-mono text-success">{{ sleepTimeRemainingPretty }}</p>
           </div>
 
-          <span class="material-symbols text-3xl text-fg cursor-pointer" :class="chapters.length ? 'text-opacity-75' : 'text-opacity-10'" @click="clickChaptersBtn">format_list_bulleted</span>
+          <div v-if="showTranscriptionBtn" data-tour="pl-transcription" class="flex flex-col items-center text-fg-muted cursor-pointer" @click.stop="openTranscription">
+            <span class="material-symbols text-3xl leading-none">transcribe</span>
+            <span class="text-[10px] font-semibold leading-tight">Transcription</span>
+          </div>
+
+          <span data-tour="pl-chapters" class="material-symbols text-3xl text-fg cursor-pointer" :class="chapters.length ? 'text-opacity-75' : 'text-opacity-10'" @click="clickChaptersBtn">format_list_bulleted</span>
         </div>
       </div>
       <div v-else class="w-full h-full absolute top-0 left-0 pointer-events-none" style="background: var(--gradient-minimized-audio-player)" />
@@ -86,14 +102,15 @@
       <div id="playerControls" class="absolute right-0 bottom-0 mx-auto" style="max-width: 414px">
         <div class="flex items-center max-w-full" :class="playerSettings.lockUi ? 'justify-center' : 'justify-between'">
           <span v-show="showFullscreen && !playerSettings.lockUi" class="material-symbols next-icon text-fg cursor-pointer" :class="showLoadingState ? 'text-opacity-10' : 'text-opacity-75'" @click.stop="jumpChapterStart">first_page</span>
-          <div v-show="!playerSettings.lockUi" class="jump-icon text-fg cursor-pointer flex flex-col items-center" :class="showLoadingState ? 'text-opacity-10' : 'text-opacity-75'" @click.stop="jumpBackwards">
+          <div v-show="!playerSettings.lockUi" data-tour="pl-jump" class="jump-icon text-fg cursor-pointer flex flex-col items-center" :class="showLoadingState ? 'text-opacity-10' : 'text-opacity-75'" @click.stop="jumpBackwards">
             <span class="material-symbols text-3xl leading-none">replay</span>
             <span v-if="showFullscreen" class="jump-label text-[10px] font-semibold leading-tight">{{ jumpBackwardsLabel }}</span>
           </div>
-          <div class="play-btn cursor-pointer shadow-sm flex items-center justify-center rounded-full text-primary mx-4 relative overflow-hidden" :style="{ backgroundColor: coverRgb }" :class="{ 'animate-spin': seekLoading }" @mousedown.prevent @mouseup.prevent @click.stop="playPauseClick">
-            <div v-if="!coverBgIsLight" class="absolute top-0 left-0 w-full h-full bg-white bg-opacity-20 pointer-events-none" />
+          <div data-tour="pl-play" class="play-btn cursor-pointer shadow-sm flex items-center justify-center rounded-full text-primary mx-4 relative overflow-hidden" :style="playBtnStyle" :class="{ 'animate-spin': seekLoading }" @mousedown.prevent @mouseup.prevent @click.stop="playPauseClick">
+            <div v-if="!coverBgIsLight && !isEinkTheme" class="absolute top-0 left-0 w-full h-full bg-white bg-opacity-20 pointer-events-none" />
 
-            <span v-if="!showLoadingState" class="material-symbols fill" :class="{ 'text-white': coverRgb && !coverBgIsLight }">{{ seekLoading ? 'autorenew' : !isPlaying ? 'play_arrow' : 'pause' }}</span>
+            <!-- e-ink: a solid ink circle with the icon in the page colour (the page-coloured circle was invisible in light e-ink) -->
+            <span v-if="!showLoadingState" class="material-symbols fill" :class="{ 'text-white': coverRgb && !coverBgIsLight && !isEinkTheme }" :style="playIconStyle">{{ seekLoading ? 'autorenew' : !isPlaying ? 'play_arrow' : 'pause' }}</span>
             <widgets-spinner-icon v-else class="h-8 w-8" />
           </div>
           <div v-show="!playerSettings.lockUi" class="jump-icon text-fg cursor-pointer flex flex-col items-center" :class="showLoadingState ? 'text-opacity-10' : 'text-opacity-75'" @click.stop="jumpForward">
@@ -114,7 +131,7 @@
         <div ref="track" class="h-1.5 w-full bg-track/50 relative rounded-full overflow-hidden" :class="{ 'animate-pulse': showLoadingState }" @click.stop>
           <div ref="readyTrack" class="h-full bg-track-buffered absolute top-0 left-0 rounded-full pointer-events-none" />
           <div ref="bufferedTrack" class="h-full bg-track absolute top-0 left-0 rounded-full pointer-events-none" />
-          <div ref="playedTrack" class="h-full bg-track-cursor absolute top-0 left-0 rounded-full pointer-events-none" />
+          <div ref="playedTrack" class="h-full bg-track-cursor absolute top-0 left-0 rounded-full pointer-events-none" :style="isEinkTheme && buttonRgb ? { backgroundColor: buttonRgb } : null" />
           <div ref="trackCursor" class="h-7 w-7 rounded-full absolute pointer-events-auto flex items-center justify-center" :style="{ top: '-11px' }" :class="{ 'opacity-0': playerSettings.lockUi || !showFullscreen }" @touchstart="touchstartCursor">
             <div class="bg-track-cursor rounded-full w-3.5 h-3.5 pointer-events-none" />
           </div>
@@ -124,13 +141,18 @@
 
     <!-- Chapters modal - lists chapters for navigation -->
     <modals-chapters-modal v-model="showChapterModal" :current-chapter="currentChapter" :chapters="chapters" :playback-rate="currentPlaybackRate" @select="selectChapter" />
+    <!-- Transcription - on-device speech-to-text, Spotify lyrics style -->
+    <app-transcription-panel ref="transcriptionPanel" v-model="showTranscription" :bottom-inset="panelInset" :item-key="mediaId" :bookmark-item-id="bookmarkItemId" :get-time="getPlayerTime" :title="title" :current-time="currentTime" :is-playing="isPlaying" :cover-rgb="coverRgb" :cover-bg-is-light="coverBgIsLight" :button-rgb="buttonRgb" :button-is-light="buttonIsLight" :playback-rate="currentPlaybackRate" :has-ebook="hasEbookForReadAlong" :ebook-item="localLibraryItem || libraryItem" @openReadAlong="openReadAlong" @miniPlayer="onReadAlongMini" @seek="seek" @playPause="playPauseClick" @jumpForward="jumpForward" @jumpBackward="jumpBackwards" />
     <!-- More menu dialog - player settings and options -->
     <modals-dialog v-model="showMoreMenuDialog" :items="menuItems" width="80vw" @action="clickMenuAction" />
   </div>
 </template>
 
 <script>
+import { einkButton } from '@/plugins/einkButton'
+import { warnPowerSaving } from '@/plugins/powerSaveNotice'
 import { Capacitor } from '@capacitor/core'
+import { KeepAwake } from '@capacitor-community/keep-awake'
 import { AbsAudioPlayer } from '@/plugins/capacitor'
 import { Dialog } from '@capacitor/dialog'
 import { getAverageColorFromCoverUrl } from '@/utils/coverAverageColor'
@@ -152,9 +174,13 @@ export default {
     return {
       windowHeight: 0,
       windowWidth: 0,
+      // landscape: where the one-line transcription card fits (measured from the laid-out player)
+      landscapeCardBox: null,
       playbackSession: null,
       showChapterModal: false,
       showFullscreen: false,
+      // room the player's controls take at the bottom, so Transcription stops above them
+      panelInset: 0,
       totalDuration: 0,
       currentPlaybackRate: 1,
       currentTime: 0,
@@ -183,14 +209,37 @@ export default {
       draggingCurrentTime: 0,
       syncStatus: 0,
       showMoreMenuDialog: false,
+      showTranscription: false,
+      pendingTranscription: false,
       coverRgb: 'rgb(55, 56, 56)',
+      // e-ink: the cover's colour for the buttons only (the page stays plain)
+      buttonRgb: null,
+      buttonIsLight: false,
       coverBgIsLight: false,
       titleMarquee: null,
       isRefreshingUI: false
     }
   },
   watch: {
+    // while the audiobook plays, the screen stays on (whatever is showing); paused, it times out as usual
+    isPlaying: {
+      immediate: true,
+      handler() {
+        this.updateKeepAwake()
+      }
+    },
+    showTranscription() {
+      this.measurePanelInset()
+      this.updateKeepAwake()
+    },
     showFullscreen(val) {
+      // the card's landscape spot, once the full player has opened (its open animation moves things)
+      setTimeout(() => this.measureLandscapeCard(), val ? 450 : 0)
+      if (val) setTimeout(() => this.measureLandscapeCard(), 1200)
+      if (val) setTimeout(() => this.$store.dispatch('onboarding/maybeTour', 'player'), 700)
+      if (val) warnPowerSaving(this)
+      this.measurePanelInset()
+      this.updateKeepAwake()
       this.updateScreenSize()
       this.$store.commit('setPlayerFullscreen', !!val)
       document.querySelector('body').style.backgroundColor = this.showFullscreen ? this.coverRgb : ''
@@ -199,12 +248,30 @@ export default {
       this.updateScreenSize()
     },
     title(val) {
+      this.ensureTitleMarquee()
       if (this.titleMarquee) this.titleMarquee.init(val)
     }
   },
+  updated() {
+    this.ensureTitleMarquee()
+  },
   computed: {
+    // From the store so the player follows a light / dark switch straight away (the page attribute isn't reactive)
     theme() {
-      return document.documentElement.dataset.theme || 'dark'
+      return this.$store.getters['device/theme'] || document.documentElement.dataset.theme || 'dark'
+    },
+    /** Light page behind the card: light theme or a light e-ink one; every dark theme gets white text */
+    /** any e-ink theme (light or dark, black & white or colour) */
+    isEinkTheme() {
+      return String(this.theme || '').startsWith('eink')
+    },
+    cardOnLight() {
+      return this.theme === 'light' || this.theme === 'eink' || this.theme === 'eink-color'
+    },
+    /** Server item id, or the local item id for books only on the phone */
+    bookmarkItemId() {
+      if (this.isPodcast) return null
+      return this.serverLibraryItemId || this.mediaId
     },
     menuItems() {
       const items = []
@@ -214,6 +281,23 @@ export default {
           text: this.$strings.ButtonHistory,
           value: 'history',
           icon: 'history'
+        })
+      }
+
+      if (!this.isPodcast && this.bookmarkItemId) {
+        const n = this.bookmarks.length
+        items.push({
+          text: n ? `Bookmarks (${n})` : 'Bookmarks',
+          value: 'bookmarks',
+          icon: 'bookmarks'
+        })
+      }
+
+      if (this.showTranscriptionBtn) {
+        items.push({
+          text: 'Transcription',
+          value: 'transcription',
+          icon: 'transcribe'
         })
       }
 
@@ -249,6 +333,33 @@ export default {
 
       return items
     },
+    // Space between the author line and the progress track in the portrait full-screen player
+    transcriptionPreviewBox() {
+      // landscape: the gap between the author line and the time row on the right, measured (see measureLandscapeCard)
+      if (this.windowHeight && this.windowWidth >= this.windowHeight) return this.landscapeCardBox
+      if (!this.windowHeight) return null
+      const coverHeight = this.fullscreenBookCoverWidth * this.bookCoverAspectRatio
+      const titleBottom = this.windowHeight / 2 - coverHeight / 2 + 50
+      const showsTotalTrack = this.playerSettings.useChapterTrack && this.playerSettings.useTotalTrack
+      const base = showsTotalTrack ? 252 : 212
+      const available = titleBottom - base - 8
+      // One line of text (plus a small label when there is room)
+      if (available < 36) return null
+      const height = Math.min(available, 60)
+      return {
+        compact: height < 52,
+        style: {
+          left: '24px',
+          right: '24px',
+          height: height + 'px',
+          bottom: base + (available - height) / 2 + 'px'
+        }
+      }
+    },
+    showTranscriptionBtn() {
+      // On-device transcription is implemented for Android only
+      return this.$platform === 'android' && !!this.mediaId
+    },
     jumpForwardLabel() {
       return this.getJumpLabel(this.jumpForwardTime)
     },
@@ -274,7 +385,9 @@ export default {
         let sideSpace = 20
         if (this.bookCoverAspectRatio === 1.6) sideSpace += (this.windowWidth - sideSpace) * 0.375
 
-        const availableHeight = this.windowHeight - 400
+        // Room under the cover for the author line and the one-line transcription card: the cover gives up only
+        // what that needs (36px), and only when it is limited by the screen height
+        const availableHeight = this.windowHeight - (this.showTranscriptionBtn ? 436 : 400)
         let width = this.windowWidth - sideSpace
         const totalHeight = width * this.bookCoverAspectRatio
         if (totalHeight > availableHeight) {
@@ -305,6 +418,23 @@ export default {
     mediaType() {
       return this.playbackSession?.mediaType || null
     },
+    /** e-ink: the cover's colour, solid, black outline (a solid ink circle when there's no cover colour) */
+    einkPlay() {
+      return this.isEinkTheme && this.buttonRgb ? einkButton(this.buttonRgb, this.buttonIsLight) : null
+    },
+    playBtnStyle() {
+      if (this.einkPlay) return this.einkPlay
+      return this.isEinkTheme ? { backgroundColor: 'rgb(var(--color-fg))' } : { backgroundColor: this.coverRgb }
+    },
+    playIconStyle() {
+      if (this.einkPlay) return { color: this.einkPlay.color }
+      return this.isEinkTheme ? { color: 'rgb(var(--color-bg))' } : null
+    },
+    /** Like the player's play button: the cover's colour */
+    lockBtnStyle() {
+      if (this.isEinkTheme) return (this.buttonRgb && einkButton(this.buttonRgb, this.buttonIsLight)) || { backgroundColor: '#fff', color: '#000', border: '2px solid #000' }
+      return { backgroundColor: this.coverRgb, color: this.coverBgIsLight ? 'rgb(30, 30, 30)' : '#fff', border: '1px solid rgba(255, 255, 255, 0.35)' }
+    },
     isPodcast() {
       return this.mediaType === 'podcast'
     },
@@ -313,6 +443,10 @@ export default {
     },
     libraryItem() {
       return this.playbackSession?.libraryItem || null
+    },
+    hasEbookForReadAlong() {
+      const it = this.localLibraryItem || this.libraryItem
+      return !!(it && it.media && it.media.ebookFile)
     },
     localLibraryItem() {
       return this.playbackSession?.localLibraryItem || null
@@ -418,6 +552,64 @@ export default {
     }
   },
   methods: {
+    /**
+     * While the book plays the screen stays on where there's something to follow: the opened player,
+     * Transcription or a book. Browsing the library it times out as usual (the screen is the biggest drain).
+     */
+    updateKeepAwake() {
+      const following = this.showFullscreen || this.showTranscription || this.$store.state.showReader
+      if (this.isPlaying && following) KeepAwake.keepAwake().catch(() => {})
+      else if (!this.showTranscription && !this.$store.state.showReader) KeepAwake.allowSleep().catch(() => {})
+    },
+    /** Transcription sits above the player: the bar (mini) or all of its controls (opened) */
+    measurePanelInset() {
+      const measure = () => {
+        const el = this.$el && this.$el.querySelector && this.$el.querySelector('#playerContent')
+        if (!el || !this.showFullscreen) {
+          this.panelInset = 0
+        } else {
+          const top = el.getBoundingClientRect().top
+          this.panelInset = Math.max(0, Math.round(window.innerHeight - top))
+        }
+        this.$store.commit('setPlayerControlsInset', this.panelInset)
+      }
+      this.$nextTick(measure)
+      setTimeout(measure, 350) // after the open / close animation
+    },
+    /** Read along in the Transcription panel: show the mini player bar below it (as in the full reader) */
+    onReadAlongMini(on) {
+      if (on) {
+        this.raWasFullscreen = this.raWasFullscreen || this.showFullscreen
+        this.showFullscreen = false
+      } else if (this.raWasFullscreen) {
+        this.raWasFullscreen = false
+        this.showFullscreen = true
+      }
+    },
+    /** Transcription → Read along: the book, every word highlighted as it's read, from [time] */
+    openReadAlong(time) {
+      try {
+        const s = JSON.parse(localStorage.getItem('ereaderSettings') || '{}')
+        localStorage.setItem('ereaderSettings', JSON.stringify({ ...s, readAlong: 'word', readAlongTurnPages: true }))
+      } catch (e) {}
+      const item = this.localLibraryItem || this.libraryItem
+      if (!item) return
+      const key = (this.libraryItem && this.libraryItem.id) || (this.localLibraryItem && this.localLibraryItem.id)
+      this.$store.commit('reader/setJump', { key, time: Math.max(0, time || 0) })
+      this.showTranscription = false
+      // the reader sits under the full-screen player: drop to the mini player so the book shows
+      this.showFullscreen = false
+      this.raWasFullscreen = false // the panel closing must not bring the full-screen player back over the book
+      this.$store.commit('showReader', { libraryItem: item, keepProgress: true })
+    },
+    /** Exact playback position (the 1 s player clock is too coarse for bookmarks) */
+    async getPlayerTime() {
+      try {
+        const data = await AbsAudioPlayer.getCurrentTime()
+        if (data && typeof data.value === 'number') return data.value
+      } catch (e) {}
+      return this.currentTime || 0
+    },
     showSyncsFailedDialog() {
       Dialog.alert({
         title: this.$strings.HeaderProgressSyncFailed,
@@ -431,6 +623,18 @@ export default {
     },
     async coverImageLoaded(fullCoverUrl) {
       if (!fullCoverUrl) return
+      // E-ink: plain page colour instead of a tint from the cover (greys ghost and look muddy)
+      const theme = document.documentElement.dataset.theme || ''
+      if (theme.startsWith('eink')) {
+        this.coverRgb = 'rgb(var(--color-bg))'
+        this.coverBgIsLight = theme === 'eink' || theme === 'eink-color'
+        // Buttons in the cover's colour on colour e-ink only: a black-and-white panel draws colour as grey dots
+        const a = theme.startsWith('eink-color') ? await getAverageColorFromCoverUrl(this, fullCoverUrl).catch(() => null) : null
+        this.buttonRgb = a ? a.rgba : null
+        this.buttonIsLight = a ? a.isLight : false
+        return
+      }
+      this.buttonRgb = null
       const avg = await getAverageColorFromCoverUrl(this, fullCoverUrl)
       if (!avg) {
         this.coverRgb = 'rgb(55, 56, 56)'
@@ -439,6 +643,7 @@ export default {
         this.coverRgb = avg.rgba
         this.coverBgIsLight = avg.isLight
       }
+      this.$store.commit('setCoverAccent', avg ? avg.rgba : null)
     },
     clickTitleAndAuthor() {
       if (!this.showFullscreen) return
@@ -513,6 +718,16 @@ export default {
     },
     restart() {
       this.seek(0)
+    },
+    /** Keyboard (desktop mode, or a keyboard on a tablet): Space play/pause, ← → jump */
+    onKey(e) {
+      if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return
+      if (this.showTranscription || this.$store.state.showReader || this.$store.state.globals.isModalOpen) return
+      if (e.key === ' ' || e.key === 'MediaPlayPause') {
+        e.preventDefault()
+        this.playPauseClick()
+      } else if (e.key === 'ArrowLeft' && this.showFullscreen) this.jumpBackwards()
+      else if (e.key === 'ArrowRight' && this.showFullscreen) this.jumpForward()
     },
     async jumpBackwards() {
       await this.$hapticsImpact()
@@ -632,16 +847,23 @@ export default {
     },
     seek(time) {
       if (this.showLoadingState) return
-      if (this.seekLoading) {
-        console.error('Already seek loading', this.seekedTime)
-        return
-      }
-
+      // ABS+: a newer seek always wins. It used to be dropped while an earlier one was still "loading", a
+      // flag only cleared by the 1-second clock, which stops while paused: tapping another line in Lyrics or
+      // Karaoke moved the transcript but not the audio.
       this.seekedTime = time
       this.seekLoading = true
 
       // Pass fractional seconds so seeks to non-integer chapter starts don't truncate
-      AbsAudioPlayer.seek({ value: time })
+      Promise.resolve(AbsAudioPlayer.seek({ value: time }))
+        .then(async () => {
+          if (this.seekedTime !== time) return // a later seek took over
+          try {
+            const d = await AbsAudioPlayer.getCurrentTime()
+            if (d && typeof d.value === 'number') this.currentTime = Number(d.value.toFixed(2))
+          } catch (e) {}
+          this.timeupdate() // ends the seeking state, playing or paused
+        })
+        .catch(() => (this.seekLoading = false))
 
       if (this.$refs.playedTrack) {
         const perc = time / this.totalDuration
@@ -766,7 +988,9 @@ export default {
       await this.$hapticsImpact()
       this.showMoreMenuDialog = false
       this.$nextTick(() => {
-        if (action === 'history') {
+        if (action === 'bookmarks') {
+          this.$emit('showBookmarks')
+        } else if (action === 'history') {
           this.$router.push(`/media/${this.mediaId}/history?title=${this.title}`)
           this.showFullscreen = false
         } else if (action === 'scale_elapsed_time') {
@@ -794,10 +1018,16 @@ export default {
           this.updateReadyTrack()
           this.updateUseChapterTrack()
           this.savePlayerSettings()
+        } else if (action === 'transcription') {
+          this.openTranscription()
         } else if (action === 'close') {
           this.closePlayback()
         }
       })
+    },
+    async openTranscription() {
+      await this.$hapticsImpact()
+      this.showTranscription = true
     },
     updateUseChapterTrack() {
       // Chapter track in NowPlaying only supported on iOS for now
@@ -817,6 +1047,7 @@ export default {
     endPlayback() {
       this.$store.commit('setPlaybackSession', null)
       this.showFullscreen = false
+      this.showTranscription = false
       this.isEnded = false
       this.isLoading = false
       this.playbackSession = null
@@ -887,6 +1118,14 @@ export default {
       this.syncStatus = 0
       this.$store.commit('setPlaybackSession', this.playbackSession)
 
+      if (this.pendingTranscription) {
+        this.pendingTranscription = false
+        this.$nextTick(() => {
+          this.expandToFullscreen()
+          this.showTranscription = true
+        })
+      }
+
       // Set track width
       this.$nextTick(() => {
         if (this.titleMarquee) this.titleMarquee.reset()
@@ -896,11 +1135,25 @@ export default {
         this.measureAndUpdateTrackWidth()
       })
     },
+    /**
+     * The title line is filled by a marquee bound to its element. When the player re-renders that element (a new
+     * session, the transcription views opening) the marquee kept writing into the old one and the title above the
+     * author showed empty: bind it to the element on screen whenever that changes.
+     */
+    ensureTitleMarquee() {
+      const el = this.$refs.titlewrapper
+      if (!el) return
+      if (this.titleMarquee && this.titleMarquee.el === el) return
+      if (this.titleMarquee) this.titleMarquee.reset()
+      this.titleMarquee = new WrappingMarquee(el)
+      this.titleMarquee.init(this.title)
+    },
     onPlaybackClosed() {
       this.endPlayback()
     },
     onPlaybackFailed(data) {
       console.log('Received onPlaybackFailed evt')
+      this.pendingTranscription = false
       var errorMessage = data.value || 'Unknown Error'
       this.$toast.error(`Playback Failed: ${errorMessage}`)
       this.endPlayback()
@@ -960,10 +1213,42 @@ export default {
         this.measureAndUpdateTrackWidth()
       })
     },
+    /**
+     * Landscape: the cover is on the left; on the right the title and author, then the time row and the
+     * controls. The read-along card goes in the gap between the author line and the time row, measured from
+     * the actual layout (it differs between phones and tablets). No gap big enough: no card.
+     */
+    measureLandscapeCard() {
+      if (!this.showFullscreen || !this.windowHeight || this.windowWidth < this.windowHeight || !this.$el || !this.$el.querySelector) {
+        if (this.landscapeCardBox) this.landscapeCardBox = null
+        return
+      }
+      const root = this.$el.getBoundingClientRect()
+      const author = this.$el.querySelector('.title-author-texts .author-text')
+      const track = this.$el.querySelector('#playerTrack')
+      if (!author || !track) return
+      const a = author.getBoundingClientRect()
+      const t = track.getBoundingClientRect()
+      const top = a.bottom + 2
+      const height = Math.min(44, t.top - 2 - top)
+      if (height < 28 || t.width < 120) {
+        this.landscapeCardBox = null
+        return
+      }
+      const box = {
+        compact: true,
+        style: { left: Math.round(t.left - root.left + 24) + 'px', width: Math.round(t.width - 48) + 'px', top: Math.round(top - root.top + (t.top - 2 - top - height) / 2) + 'px', height: Math.round(height) + 'px' }
+      }
+      if (JSON.stringify(box) !== JSON.stringify(this.landscapeCardBox)) this.landscapeCardBox = box
+    },
     updateScreenSize() {
       setTimeout(() => {
         if (this.titleMarquee) this.titleMarquee.init(this.title)
       }, 500)
+      // after the player has laid itself out for the new size
+      this.$nextTick(() => this.measureLandscapeCard())
+      setTimeout(() => this.measureLandscapeCard(), 450)
+      setTimeout(() => this.measureLandscapeCard(), 1200)
 
       this.windowHeight = window.innerHeight
       this.windowWidth = window.innerWidth
@@ -979,7 +1264,32 @@ export default {
       document.documentElement.style.setProperty('--title-author-left-offset-collapsed', titleAuthorLeftOffsetCollapsed + 'px')
       document.documentElement.style.setProperty('--title-author-width-collapsed', titleAuthorWidthCollapsed + 'px')
     },
+    // From the book page "Transcribe" button. { pending: true } = a session is about to load for that book
+    openTranscriptionEvt(payload) {
+      if (payload && payload.pending) {
+        this.pendingTranscription = true
+        return
+      }
+      if (!this.playbackSession) return
+      this.expandToFullscreen()
+      this.showTranscription = true
+      // from read along's top bar: Lyrics / Karaoke, or the search box
+      if (payload && (payload.mode || payload.search || payload.menu)) {
+        this.$nextTick(() => {
+          const panel = this.$refs.transcriptionPanel
+          if (!panel) return
+          if (payload.mode) panel.setViewMode(payload.mode)
+          if (payload.menu) panel.showMenu = true
+          if (payload.search) setTimeout(() => panel.$refs.searchInput && panel.$refs.searchInput.focus(), 350)
+        })
+      }
+    },
     minimizePlayerEvt() {
+      // Android back button: close Transcription first, then minimize the player
+      if (this.showTranscription) {
+        this.showTranscription = false
+        return
+      }
       this.collapseFullscreen()
     },
     showProgressSyncIsFailing() {
@@ -990,6 +1300,23 @@ export default {
     }
   },
   mounted() {
+    // the landscape card's spot follows the layout: measured again whenever the player's track row or the
+    // title/author block change size or place (rotation, the full player opening, a longer title)
+    if (window.ResizeObserver) {
+      let pending = 0
+      this.cardRO = new ResizeObserver(() => {
+        cancelAnimationFrame(pending)
+        pending = requestAnimationFrame(() => this.measureLandscapeCard())
+      })
+      this.$nextTick(() => {
+        ;['#playerTrack', '.title-author-texts'].forEach((sel) => {
+          const el = this.$el && this.$el.querySelector && this.$el.querySelector(sel)
+          if (el) this.cardRO.observe(el)
+        })
+        if (this.$el) this.cardRO.observe(this.$el)
+      })
+    }
+    window.addEventListener('keydown', this.onKey)
     this.updateScreenSize()
     if (screen.orientation) {
       // Not available on ios
@@ -1000,12 +1327,15 @@ export default {
     window.addEventListener('resize', this.screenOrientationChange)
 
     this.$eventBus.$on('minimize-player', this.minimizePlayerEvt)
+    this.$eventBus.$on('open-transcription', this.openTranscriptionEvt)
     document.body.addEventListener('touchstart', this.touchstart, { passive: false })
     document.body.addEventListener('touchend', this.touchend)
     document.body.addEventListener('touchmove', this.touchmove)
     this.$nextTick(this.init)
   },
   beforeDestroy() {
+    if (this.cardRO) this.cardRO.disconnect()
+    window.removeEventListener('keydown', this.onKey)
     if (screen.orientation) {
       // Not available on ios
       screen.orientation.removeEventListener('change', this.screenOrientationChange)
@@ -1021,6 +1351,7 @@ export default {
 
     this.forceCloseDropdownMenu()
     this.$eventBus.$off('minimize-player', this.minimizePlayerEvt)
+    this.$eventBus.$off('open-transcription', this.openTranscriptionEvt)
     document.body.removeEventListener('touchstart', this.touchstart)
     document.body.removeEventListener('touchend', this.touchend)
     document.body.removeEventListener('touchmove', this.touchmove)

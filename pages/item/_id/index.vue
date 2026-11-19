@@ -12,7 +12,7 @@
           </div>
         </div>
       </div>
-      <div class="relative" @click="showFullscreenCover = true">
+      <div class="relative item-cover" @click="showFullscreenCover = true">
         <covers-book-cover :library-item="libraryItem" :width="coverWidth" :book-cover-aspect-ratio="bookCoverAspectRatio" no-bg raw />
         <div v-if="!isPodcast" class="absolute bottom-0 left-0 h-1 z-10 box-shadow-progressbar" :class="userIsFinished ? 'bg-success' : 'bg-yellow-400'" :style="{ width: coverWidth * progressPercent + 'px' }"></div>
       </div>
@@ -51,15 +51,24 @@
         <!-- action buttons -->
         <div class="col-span-full">
           <div v-if="showPlay || showRead" class="flex mt-4 -mx-1">
-            <ui-btn v-if="showPlay" color="success" class="flex items-center justify-center flex-grow mx-1" :loading="playerIsStartingForThisMedia" :padding-x="4" @click="playClick">
+            <ui-btn v-if="showPlay" data-tour="item-play" color="success" class="flex items-center justify-center flex-grow mx-1" :loading="playerIsStartingForThisMedia" :padding-x="4" @click="playClick">
               <span class="material-symbols text-2xl fill">{{ playerIsPlaying ? 'pause' : 'play_arrow' }}</span>
               <span class="px-1 text-sm">{{ playerIsPlaying ? $strings.ButtonPause : isPodcast ? $strings.ButtonNextEpisode : hasLocal ? $strings.ButtonPlay : $strings.ButtonStream }}</span>
             </ui-btn>
-            <ui-btn v-if="showRead" color="info" class="flex items-center justify-center mx-1" :class="showPlay ? '' : 'flex-grow'" :padding-x="2" @click="readBook">
+            <ui-btn v-if="showRead" data-tour="item-read" color="info" class="flex items-center justify-center mx-1" :class="showPlay ? '' : 'flex-grow'" :padding-x="2" @click="readBook">
               <span class="material-symbols text-2xl">auto_stories</span>
               <span v-if="!showPlay" class="px-2 text-base">{{ $strings.ButtonRead }} {{ ebookFormat }}</span>
             </ui-btn>
-            <ui-btn v-if="showDownload" :color="downloadItem ? 'warning' : 'primary'" class="flex items-center justify-center mx-1" :padding-x="2" @click="downloadClick">
+            <!-- Read or search the transcription, without touching the player -->
+            <ui-btn v-if="showTranscriptButton" data-tour="item-transcript" color="primary" class="flex items-center justify-center mx-1" :padding-x="2" @click="openTranscriptReader">
+              <span class="material-symbols text-2xl">subtitles</span>
+              <span v-if="!showPlay || !showRead" class="px-1 text-sm">Transcript</span>
+            </ui-btn>
+            <!-- Spelling: the server compares the transcript with the book's ebook (only when the book has one) -->
+            <ui-btn v-if="showSpellCheck" data-tour="item-spellcheck" color="primary" class="flex items-center justify-center mx-1" :padding-x="2" :loading="spellChecking" aria-label="Check spelling against the book" @click="spellCheckClick">
+              <span class="material-symbols text-2xl">spellcheck</span>
+            </ui-btn>
+            <ui-btn v-if="showDownload" data-tour="item-download" :color="downloadItem ? 'warning' : 'primary'" class="flex items-center justify-center mx-1" :padding-x="2" @click="downloadClick">
               <span class="material-symbols text-2xl" :class="downloadItem || startingDownload ? 'animate-pulse' : ''">{{ downloadItem || startingDownload ? 'downloading' : 'download' }}</span>
             </ui-btn>
             <ui-btn color="primary" class="flex items-center justify-center mx-1" :padding-x="2" @click="moreButtonPress">
@@ -69,6 +78,11 @@
           <ui-btn v-else-if="isMissing" color="error" :padding-x="4" small class="mt-4 flex items-center justify-center w-full" @click="clickMissingButton">
             <span class="material-symbols">error</span>
             <span class="px-1 text-base">{{ $strings.LabelMissing }}</span>
+          </ui-btn>
+          <!-- Transcription: on-device speech-to-text (Android) -->
+          <ui-btn v-if="showTranscribe && !transcriptDone" data-tour="item-transcribe" color="primary" class="flex items-center justify-center w-full mt-2" :loading="transcribeStarting" :padding-x="4" @click="transcribeClick">
+            <span class="material-symbols text-2xl">transcribe</span>
+            <span class="px-1 text-sm">{{ transcribeLabel }}</span>
           </ui-btn>
 
           <div v-if="!isPodcast && progressPercent > 0" class="px-4 py-2 bg-primary text-sm font-semibold rounded-md text-fg mt-4 text-center">
@@ -163,6 +177,9 @@
 
     <modals-fullscreen-cover v-model="showFullscreenCover" :library-item="libraryItem" />
 
+    <!-- Transcription for reading and searching (the player isn't involved; "Play from here" starts it) -->
+    <app-transcription-panel v-if="showTranscribe" v-model="showTranscriptReader" reading :item-key="transcriptKey" :title="title" :current-time="readFromTime" :is-playing="false" :cover-rgb="coverRgb || ''" :cover-bg-is-light="coverBgIsLight" :button-rgb="einkButtonRgb" :button-is-light="coverBgIsLight" :has-ebook="!!showRead" @playFrom="playFromTranscript" @openReadAlong="openReadAlongHere" />
+
     <div v-show="processing" class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center bg-black/50 z-50">
       <ui-loading-indicator />
     </div>
@@ -172,6 +189,7 @@
 <script>
 import { Dialog } from '@capacitor/dialog'
 import { AbsFileSystem, AbsDownloader } from '@/plugins/capacitor'
+import { Transcriber } from '@/plugins/transcriber'
 import { getAverageColorFromCoverUrl } from '@/utils/coverAverageColor'
 import cellularPermissionHelpers from '@/mixins/cellularPermissionHelpers'
 
@@ -211,11 +229,16 @@ export default {
   },
   data() {
     return {
+      transcriptStatus: null,
+      transcriptListener: null,
+      transcribeStarting: false,
+      spellChecking: false,
       processing: false,
       showSelectLocalFolder: false,
       showMoreMenu: false,
       showFullscreenCover: false,
       coverRgb: null,
+      showTranscriptReader: false,
       coverBgIsLight: false,
       windowWidth: 0,
       descriptionClamped: false,
@@ -448,6 +471,47 @@ export default {
     showRead() {
       return this.ebookFile
     },
+    showTranscribe() {
+      return this.$platform === 'android' && !this.isPodcast && !!this.showPlay && !!this.transcriptKey
+    },
+    transcriptKey() {
+      // Same key the player uses: server item id when linked, otherwise the local item id
+      return this.serverLibraryItemId || this.localLibraryItemId
+    },
+    /** Something to read: finished, or partly done (lines appear while it works) */
+    hasTranscriptToRead() {
+      const s = this.transcriptStatus
+      return !!s && s.status && s.status !== 'none'
+    },
+    transcriptDone() {
+      return !!this.transcriptStatus && this.transcriptStatus.status === 'done'
+    },
+    /** A transcribed book with an ebook: its spelling can be checked against the book */
+    showSpellCheck() {
+      return this.showTranscriptButton && !!this.ebookFile && !!this.serverLibraryItemId && !this.isPodcast
+    },
+    showTranscriptButton() {
+      return this.showTranscribe && this.hasTranscriptToRead
+    },
+    /** Open the transcript where you are in the book */
+    /** e-ink: the transcript's buttons in the cover's colour */
+    einkButtonRgb() {
+      // colour e-ink only (black-and-white panels draw colour as grey dots: plain ink there)
+      return (this.$store.getters['device/theme'] || '').startsWith('eink-color') ? this.coverRgb || null : null
+    },
+    readFromTime() {
+      const p = this.userItemProgress
+      return (p && p.currentTime) || 0
+    },
+    transcribeLabel() {
+      const s = this.transcriptStatus
+      const pct = s && s.progress ? Math.round(s.progress * 100) : 0
+      if (!s || s.status === 'none') return 'Transcribe'
+      if (s.status === 'done') return 'View transcription'
+      if (s.status === 'running' || s.status === 'queued') return `${s.source === 'server' ? (s.engine === 'device' ? `Transcribing on ${s.deviceName || 'another phone'}` : 'Transcribing on server') : 'Transcribing'}… ${pct}%`
+      if (s.status === 'paused') return `Transcription paused · ${pct}%`
+      return 'Transcription (error, tap to retry)'
+    },
     showDownload() {
       if (this.isPodcast || this.hasLocal) return false
       return this.user && this.userCanDownload && (this.showPlay || this.showRead)
@@ -487,6 +551,102 @@ export default {
     }
   },
   methods: {
+    async loadTranscriptStatus() {
+      if (!this.showTranscribe) return
+      try {
+        // Also syncs with the server, so a book transcribed there (or on another phone) is ready here
+        this.transcriptStatus = await Transcriber.prepare(this.transcriptKey)
+      } catch (error) {
+        console.error('Failed to get transcript status', error)
+      }
+    },
+    onTranscriptionUpdate(data) {
+      if (data && data.key === this.transcriptKey) this.transcriptStatus = data
+    },
+    /** Transcription → Read along: the book, every word highlighted as it's read, from [time] */
+    openReadAlongHere(time) {
+      try {
+        const s = JSON.parse(localStorage.getItem('ereaderSettings') || '{}')
+        localStorage.setItem('ereaderSettings', JSON.stringify({ ...s, readAlong: 'word', readAlongTurnPages: true }))
+      } catch (e) {}
+      const item = this.hasLocal && this.localLibraryItem ? this.localLibraryItem : this.libraryItem
+      if (!item) return
+      const key = this.serverLibraryItemId || this.localLibraryItemId
+      this.$store.commit('reader/setJump', { key, time: Math.max(0, time || 0) })
+      this.showTranscriptReader = false
+      this.$store.commit('showReader', { libraryItem: item, keepProgress: true })
+    },
+    async openTranscriptReader() {
+      await this.$hapticsImpact()
+      // this book is the one in the player: open the player's own transcript (live, with read mode),
+      // not a second, separate copy that doesn't know the audio is playing
+      if (this.isPlaying) return this.$eventBus.$emit('open-transcription')
+      this.showTranscriptReader = true
+    },
+    /** "Play from here" in the transcript: start listening at that point */
+    playFromTranscript(time) {
+      this.showTranscriptReader = false
+      let libraryItemId = this.libraryItemId
+      if (this.hasLocal && !(this.serverLibraryItemId && this.isCasting)) libraryItemId = this.localLibraryItem.id
+      this.$store.commit('setPlayerIsStartingPlayback', libraryItemId)
+      this.$eventBus.$emit('play-item', { libraryItemId, serverLibraryItemId: this.serverLibraryItemId, startTime: Math.max(0, time || 0) })
+    },
+    /** The server compares the transcript with the ebook; the result is shown here when it's ready */
+    async spellCheckClick() {
+      if (this.spellChecking) return
+      await this.$hapticsImpact()
+      const key = this.serverLibraryItemId
+      this.spellChecking = true
+      try {
+        // spellings dismissed with Ignore: bring them back for review instead of checking again
+        const st0 = await Transcriber.serverStatus(key).catch(() => null)
+        if (st0 && st0.ebookCheck === 'done') {
+          const res = await Transcriber.getEbookCheck({ key }).catch(() => null)
+          const ids = ((res && res.check && res.check.suggestions) || []).filter((x) => x.status === 'ignored').map((x) => x.id)
+          if (ids.length) {
+            await Transcriber.updateSuggestions({ key, ids, status: 'pending' })
+            this.$toast.info(`${ids.length} ignored spelling${ids.length === 1 ? ' is' : 's are'} back for review in Transcription.`)
+            if (this.isPlaying) this.$eventBus.$emit('open-transcription')
+            return
+          }
+        }
+        await Transcriber.checkWithEbook({ key })
+        this.$toast.info('Checking spelling against the book on the server…')
+        for (let i = 0; i < 400; i++) {
+          await new Promise((r) => setTimeout(r, 3000))
+          if (this._isDestroyed) return
+          const st = await Transcriber.serverStatus(key).catch(() => null)
+          if (!st || ['queued', 'running'].includes(st.ebookCheck)) continue
+          if (st.ebookCheck === 'done') {
+            const n = st.ebookSuggestions || 0
+            if (n) this.$toast.warning(`${n} possible spelling error${n === 1 ? '' : 's'} found using the ebook. Open the Transcription (⋮ → Review) to check them. Differences can also come from the narrator ad-libbing or edits between book and audiobook.`, { timeout: 9000 })
+            else this.$toast.success('Checked against the book: nothing to fix.')
+          } else this.$toast.error(st.ebookCheckMessage || "Couldn't compare with the ebook.")
+          return
+        }
+      } catch (error) {
+        this.$toast.error(error.message || String(error))
+      } finally {
+        this.spellChecking = false
+      }
+    },
+    async transcribeClick() {
+      await this.$hapticsImpact()
+      // This book is already loaded in the player: just open Transcription
+      if (this.isPlaying) {
+        this.$eventBus.$emit('open-transcription')
+        return
+      }
+      if (this.playerIsStartingPlayback) return
+      // Load the book into the player without starting audio, then open Transcription
+      let libraryItemId = this.libraryItemId
+      if (this.hasLocal && !(this.serverLibraryItemId && this.isCasting)) libraryItemId = this.localLibraryItem.id
+      this.transcribeStarting = true
+      this.$eventBus.$emit('open-transcription', { pending: true })
+      this.$store.commit('setPlayerIsStartingPlayback', libraryItemId)
+      this.$eventBus.$emit('play-item', { libraryItemId, serverLibraryItemId: this.serverLibraryItemId, paused: true })
+      setTimeout(() => (this.transcribeStarting = false), 1500)
+    },
     clickMissingButton() {
       Dialog.alert({
         title: this.$strings.LabelMissing,
@@ -505,11 +665,19 @@ export default {
       this.showMoreMenu = true
     },
     readBook() {
+      // Read: the read-along reading mode (✕ switches to listening from the page). Read along is turned on
+      // for books with audio so the narration can follow once it plays.
+      if (this.numTracks || (this.media && this.media.duration)) {
+        try {
+          const s = JSON.parse(localStorage.getItem('ereaderSettings') || '{}')
+          if (!s.readAlong || s.readAlong === 'off') localStorage.setItem('ereaderSettings', JSON.stringify({ ...s, readAlong: 'word', readAlongTurnPages: true }))
+        } catch (e) {}
+      }
       if (this.localLibraryItem?.media?.ebookFile) {
         // Has local ebook file
-        this.$store.commit('showReader', { libraryItem: this.localLibraryItem, keepProgress: true })
+        this.$store.commit('showReader', { libraryItem: this.localLibraryItem, keepProgress: true, readMode: true })
       } else {
-        this.$store.commit('showReader', { libraryItem: this.libraryItem, keepProgress: true })
+        this.$store.commit('showReader', { libraryItem: this.libraryItem, keepProgress: true, readMode: true })
       }
     },
     playAtTimestamp(seconds) {
@@ -594,8 +762,25 @@ export default {
     itemUpdated(libraryItem) {
       if (libraryItem.id === this.serverLibraryItemId) {
         console.log('Item Updated')
+        // keep the link to the downloaded copy (the server's update doesn't carry it) and bring that copy's
+        // details up to date too, so the edit shows everywhere the downloaded book appears
+        const local = this.libraryItem && this.libraryItem.localLibraryItem
+        if (local) libraryItem.localLibraryItem = local
         this.libraryItem = libraryItem
+        this.syncLocalDetails(libraryItem)
         this.checkDescriptionClamped()
+      }
+    },
+    /** A downloaded book keeps its own copy of its details: refresh it from the server's current ones */
+    async syncLocalDetails(libraryItem) {
+      const local = libraryItem && libraryItem.localLibraryItem
+      const md = libraryItem && libraryItem.media && libraryItem.media.metadata
+      if (!local || !md || !local.id) return
+      try {
+        const r = await this.$db.updateLocalItemMetadata({ localLibraryItemId: local.id, metadata: md })
+        if (r && r.changed && local.media) local.media.metadata = { ...md }
+      } catch (e) {
+        console.error('[item] could not update the downloaded copy details', e)
       }
     },
     async selectFolder() {
@@ -770,6 +955,7 @@ export default {
           libraryItem.localLibraryItem = localLibraryItem
         }
         this.libraryItem = libraryItem
+        this.syncLocalDetails(libraryItem)
       } else if (this.$route.query.localLibraryItemId) {
         // Failed to get server library item but is local library item so redirect
         return this.$router.replace(`/item/${this.$route.query.localLibraryItemId}?noredirect=1`)
@@ -784,8 +970,13 @@ export default {
       await this.loadServerLibraryItem()
     }
     this.init()
+    this.loadTranscriptStatus()
+    if (this.$platform === 'android') {
+      Transcriber.addListener('onTranscriptionUpdate', this.onTranscriptionUpdate).then((h) => (this.transcriptListener = h))
+    }
   },
   beforeDestroy() {
+    if (this.transcriptListener) this.transcriptListener.remove()
     window.removeEventListener('resize', this.windowResized)
     this.$eventBus.$off('library-changed', this.libraryChanged)
     this.$eventBus.$off('new-local-library-item', this.newLocalLibraryItem)
