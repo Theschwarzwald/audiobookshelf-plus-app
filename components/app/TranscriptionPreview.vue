@@ -152,11 +152,12 @@ export default {
       ws.forEach((w, i) => {
         if (w.t != null && w.t <= t) now = i
       })
-      // e-ink / low power: a block of three words (the one being said and one either side, the spaces between
-      // included) so each step reads as a phrase; the middle word stays in the centre of the card
+      // e-ink only: a block of three words (the one being said and one either side, the spaces between
+      // included) so each step reads as a phrase; the middle word stays in the centre of the card.
+      // Phones in low power keep their normal look: one word highlighted, just updated less often.
       let from = -1
       let to = -1
-      if (!this.smooth && now >= 0 && ws[now] && ws[now].t != null) {
+      if (!this.smooth && this.eink && now >= 0 && ws[now] && ws[now].t != null) {
         const wordIdx = ws.map((w, i) => (w.t != null ? i : -1)).filter((i) => i >= 0)
         const k = wordIdx.indexOf(now)
         from = wordIdx[Math.max(0, k - 1)]
@@ -464,7 +465,7 @@ export default {
 .p-word.p-said {
   opacity: 1;
 }
-/* e-ink / low power: three words highlighted as one block */
+/* e-ink: three words highlighted as one block */
 .p-word.p-grp {
   border-radius: 0;
   opacity: 1;

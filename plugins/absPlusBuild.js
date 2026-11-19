@@ -3,4 +3,4 @@
  * see android/app/build.gradle) and publish the APK to the server with publish-app.js: phones on an older
  * build then show "Update available".
  */
-export const ABS_PLUS_BUILD = 139
+export const ABS_PLUS_BUILD = 140

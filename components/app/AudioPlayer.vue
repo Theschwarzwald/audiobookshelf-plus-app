@@ -62,7 +62,7 @@
 
     <!-- Title and author text -->
     <div class="title-author-texts absolute z-30 left-0 right-0 overflow-hidden" @click="clickTitleAndAuthor">
-      <div ref="titlewrapper" class="overflow-hidden relative">
+      <div ref="titlewrapper" key="abs-title-marquee" data-title-marquee class="overflow-hidden relative">
         <p class="title-text whitespace-nowrap"></p>
       </div>
       <p class="author-text text-fg text-opacity-75 truncate">{{ authorName }}</p>

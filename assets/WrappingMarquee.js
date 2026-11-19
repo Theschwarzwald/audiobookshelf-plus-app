@@ -25,11 +25,21 @@ class WrappingMarquee {
    * @param {boolean} showLeft
    */
   setMask(showLeft) {
-    if (!this.el) return
+    if (!this.isOwnElement()) return this.reset()
     this.el.style.maskImage = showLeft ? 'linear-gradient(90deg, transparent 0%, #fff 10%, #000 90%, transparent)' : 'linear-gradient(90deg, #000 90%, transparent)'
   }
 
+  /**
+   * ABS+: still the title line? When the player re-renders, Vue can reuse this element for another part of the
+   * screen (it once put the title's fade on the cover). The title line carries data-title-marquee; anything else
+   * is left alone.
+   */
+  isOwnElement() {
+    return !!(this.el && this.el.isConnected && this.el.hasAttribute('data-title-marquee') && this.pEl && this.pEl.parentNode === this.el)
+  }
+
   startScroll() {
+    if (!this.isOwnElement()) return this.reset()
     if (this.isScrolling) {
       console.warn('Already scrolling')
       return
@@ -54,6 +64,7 @@ class WrappingMarquee {
       }
       const elapsed = timeStamp - start
 
+      if (!this.isOwnElement()) return this.reset()
       if (this.isScrolling && previousTimeStamp !== timeStamp) {
         const amountToMove = Math.min((elapsed / scrollDuration) * totalScrollAmount, totalScrollAmount)
         this.pEl.style.transform = `translateX(-${amountToMove}px)`
@@ -91,6 +102,8 @@ class WrappingMarquee {
     this.timer = null
     this.isScrolling = false
     window.cancelAnimationFrame(this.animationId)
+    // remove any fade left on the element (also when it has since become another part of the screen)
+    if (this.el) this.el.style.maskImage = ''
   }
 
   /**
@@ -100,7 +113,7 @@ class WrappingMarquee {
    * @param {string} innerText
    */
   init(innerText) {
-    if (!this.el || !this.pEl) return
+    if (!this.isOwnElement()) return this.reset()
 
     this.reset()
 
