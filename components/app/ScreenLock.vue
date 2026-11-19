@@ -163,7 +163,15 @@ export default {
       AbsDevice.setScreenDim({ dim: false, keepOn: true }).catch(() => {})
       // the status bar's height comes back before the bars hide (they wait for the pin), so nothing moves
       AbsDevice.setLockMode({ on: true })
-        .then((r) => this.locked && this.holdTopInset(true, r && r.statusBarTop))
+        .then((r) => {
+          if (!this.locked) return
+          this.holdTopInset(true, r && r.statusBarTop)
+          // iOS can't pin apps: Guided Access is the system's way to keep ABS+ on screen
+          if (this.$platform === 'ios' && r && !r.pinned && !r.guidedAccess && !this._guidedHintShown) {
+            this._guidedHintShown = true
+            this.$toast.info('To keep ABS+ on screen, turn on Guided Access (Settings → Accessibility → Guided Access), then triple-click the side button.')
+          }
+        })
         .catch(() => this.locked && this.holdTopInset(true))
       this.flashBadge()
       this.scheduleDim()

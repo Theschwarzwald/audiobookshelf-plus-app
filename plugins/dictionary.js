@@ -92,7 +92,7 @@ export async function lookup(word, lang) {
       return { word, entry: builtin.entry, entryKind: translated ? 'translation' : 'definition', results: defs, source: 'builtin', online: builtin.online }
     }
   } catch (e) {}
-  const extra = { suggested: builtin && builtin.suggested, anyInstalled: !!(builtin && builtin.anyInstalled), online: !!(builtin && builtin.online) }
+  const extra = { suggested: builtin && builtin.suggested, anyInstalled: !!(builtin && builtin.anyInstalled), online: !!(builtin && builtin.online), systemDefinition: !!(builtin && builtin.systemDefinition) }
   let local = null
   try {
     local = await AbsDictionary.lookup({ words, lang: lang || '' })
@@ -172,3 +172,6 @@ export function removeDictionary(id) {
 export function onDownloadProgress(cb) {
   return AbsDictionary.addListener('onDictionaryDownload', cb)
 }
+
+/** iOS: open the system dictionary's card for a word (AbsDictionary.swift) */
+export const showSystemDefinition = (word) => AbsDictionary.showDefinition({ word })

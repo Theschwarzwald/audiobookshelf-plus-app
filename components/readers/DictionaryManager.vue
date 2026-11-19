@@ -29,7 +29,7 @@
       </div>
       <span v-if="progress[d.id] !== undefined" class="text-xs" :style="{ color: p.muted }">{{ Math.round(progress[d.id] * 100) }}%</span>
       <button v-else-if="installed.some((x) => x.id === d.id)" class="material-symbols" :style="{ color: p.muted }" aria-label="Remove" @click.stop="removeDict(d)">delete</button>
-      <button v-else class="px-3 py-1 rounded-full text-xs font-semibold" :style="{ backgroundColor: p.accentSoft, color: p.accent }" @click.stop="installDict(d)">Download</button>
+      <button v-else-if="$platform === 'android'" class="px-3 py-1 rounded-full text-xs font-semibold" :style="{ backgroundColor: p.accentSoft, color: p.accent }" @click.stop="installDict(d)">Download</button>
     </div>
     <p v-if="!serverDicts.length" class="text-sm py-2" :style="{ color: p.muted }">{{ online ? 'None on your server. (Server admins: put StarDict dictionaries in the transcription container’s /dictionaries folder.) Words are still looked up there online if it allows that.' : 'Connect to your server to see its dictionaries.' }}</p>
   </div>

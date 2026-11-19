@@ -76,6 +76,7 @@
         </template>
         <template v-else>
           <p class="text-sm py-1" :style="{ color: p.muted }">{{ result.hint || 'No definition found.' }}</p>
+          <button v-if="$platform === 'ios'" class="w-full mt-2 py-2.5 rounded-lg text-sm font-semibold" :style="{ backgroundColor: p.accent, color: p.onAccent }" @click.stop="showSystem">{{ result.systemDefinition ? 'Show the iOS dictionary definition' : 'Look up in the iOS dictionary' }}</button>
           <template v-if="result.suggested && result.suggested.status !== 'ready' && isAndroid">
             <p v-if="result.suggested.status === 'failed'" class="text-xs" :style="{ color: p.muted }">The last download didn't finish: {{ result.suggested.message }}</p>
             <button class="w-full mt-2 py-2.5 rounded-lg text-sm font-semibold" :style="{ backgroundColor: p.accent, color: p.onAccent }" @click.stop="install(result.suggested)">Download {{ result.suggested.label }} dictionary (about {{ result.suggested.sizeLabel }})</button>
@@ -102,7 +103,7 @@
 
 <script>
 import { Capacitor } from '@capacitor/core'
-import { lookup, installBuiltin, setOnlineLookups, onBuiltinProgress, translate } from '@/plugins/dictionary'
+import { lookup, installBuiltin, setOnlineLookups, onBuiltinProgress, translate, showSystemDefinition } from '@/plugins/dictionary'
 
 // languages offered for Translate (MyMemory's two-letter codes)
 const LANGUAGES = [
@@ -185,6 +186,10 @@ export default {
     }
   },
   methods: {
+    /** iOS: the system dictionary card (offline dictionaries aren't on iPhone yet) */
+    showSystem() {
+      showSystemDefinition(this.selection.word).catch(() => {})
+    },
     langName(code) {
       const l = LANGUAGES.find((x) => x.code === code)
       return l ? l.name : code

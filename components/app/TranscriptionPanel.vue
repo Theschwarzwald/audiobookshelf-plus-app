@@ -380,6 +380,7 @@ import { buildShade, themeColors } from '@/plugins/coverShade'
 import { einkButton, einkTint } from '@/plugins/einkButton'
 import { warnPowerSaving } from '@/plugins/powerSaveNotice'
 import { AbsDevice } from '@/plugins/capacitor/AbsDevice'
+import { AbsLiveActivity } from '@/plugins/capacitor/AbsLiveActivity'
 
 // Karaoke: light each word up a touch early, the eye needs a moment to find it
 const KARAOKE_LEAD = 0.2
@@ -1314,12 +1315,15 @@ export default {
     },
     /** The lock-screen card shows the narrated line: give it this book's lines (server transcripts aren't on the phone) */
     pushLockscreenLines() {
-      if (this.$platform !== 'android' || !this.itemKey || !this.lines.length) return
+      const platform = this.$platform
+      if ((platform !== 'android' && platform !== 'ios') || !this.itemKey || !this.lines.length) return
       clearTimeout(this.lockLinesTimer)
       this.lockLinesTimer = setTimeout(() => {
         const key = this.itemKey
         const lines = this.lines.map((l) => ({ s: l.s, e: l.e, t: l.t }))
-        AbsDevice.setLockscreenTranscript({ key, lines }).catch(() => {})
+        // Android draws its own lock screen; iOS shows the line as a Live Activity
+        if (platform === 'ios') AbsLiveActivity.setTranscript({ key, lines }).catch(() => {})
+        else AbsDevice.setLockscreenTranscript({ key, lines }).catch(() => {})
       }, 2500)
     },
     dictCopy() {
@@ -1628,7 +1632,7 @@ export default {
         else if (this.serverUsable) this.engine = 'server'
         else {
           this.engine = 'none'
-          if (this.offlinePref === 'ask' && Capacitor.getPlatform() === 'android') this.phonePrompt = this.online ? 'no-server' : 'offline'
+          if (this.offlinePref === 'ask' && ['android', 'ios'].includes(Capacitor.getPlatform())) this.phonePrompt = this.online ? 'no-server' : 'offline'
         }
         if (this.engine !== 'none') await this.loadModels()
         if (this.itemKey) await this.fetchLines(true)

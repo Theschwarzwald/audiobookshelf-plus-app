@@ -22,6 +22,20 @@ class MyViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AbsDownloader())
         bridge?.registerPluginInstance(AbsFileSystem())
         bridge?.registerPluginInstance(AbsLogger())
+        // ABS+
+        bridge?.registerPluginInstance(AbsDevice())
+        bridge?.registerPluginInstance(AbsDictionary())
+        bridge?.registerPluginInstance(AbsUpdater())
+        bridge?.registerPluginInstance(AbsPageTurn())
+        // Transcripts on the phone, sync with the server, and (once the speech engine is added) transcription
+        bridge?.registerPluginInstance(AbsTranscriber())
+        // Added to the project by ios/App/scripts/add-live-activity-target.rb, so looked up by name: the app still
+        // builds and runs before that script has been run.
+        for name in ["AbsLiveActivity"] {
+            if let objectType = NSClassFromString(name) as? NSObject.Type, let plugin = objectType.init() as? CAPPlugin {
+                bridge?.registerPluginInstance(plugin)
+            }
+        }
     }
     
 

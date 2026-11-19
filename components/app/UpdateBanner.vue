@@ -21,7 +21,7 @@
 <script>
 import { CapacitorHttp } from '@capacitor/core'
 import { AbsUpdater } from '@/plugins/capacitor/AbsUpdater'
-import { ABS_PLUS_BUILD } from '@/plugins/absPlusBuild'
+import { ABS_PLUS_BUILD, ABS_PLUS_RELEASES_REPO } from '@/plugins/absPlusBuild'
 
 const mb = (b) => `${Math.round((b || 0) / 1e6)} MB`
 
@@ -109,17 +109,46 @@ export default {
       await this.check(true)
       if (done) done(this.latest && this.latest.build > ABS_PLUS_BUILD ? this.latest.build : null)
     },
+    /** The ABS+ server's newest build ({ build, sha256, notes, url }), or null (plain Audiobookshelf, offline) */
+    async latestFromServer(base) {
+      if (!base) return null
+      try {
+        const r = await CapacitorHttp.get({ url: `${base}/abs-plus/app/latest.json`, connectTimeout: 8000, readTimeout: 8000 })
+        const j = typeof r.data === 'string' ? JSON.parse(r.data) : r.data
+        if (r.status !== 200 || !j || typeof j.build !== 'number') return null
+        j.url = `${base}/abs-plus/app/ABS+.apk` // the address this phone already reaches the server at
+        return j
+      } catch (e) {
+        return null
+      }
+    },
+    /** The newest build on GitHub (the ABS+ server repository's latest release), or null */
+    async latestFromGitHub() {
+      try {
+        const r = await CapacitorHttp.get({ url: `https://api.github.com/repos/${ABS_PLUS_RELEASES_REPO}/releases/latest`, headers: { Accept: 'application/vnd.github+json' }, connectTimeout: 8000, readTimeout: 8000 })
+        const rel = typeof r.data === 'string' ? JSON.parse(r.data) : r.data
+        const build = parseInt(String((rel && rel.tag_name) || '').replace(/^v/i, ''), 10)
+        const apks = ((rel && rel.assets) || []).filter((a) => /\.apk$/i.test(a.name))
+        const asset = apks.find((a) => a.name === 'ABS-Plus.apk') || apks[0]
+        if (r.status !== 200 || !(build > 0) || !asset) return null
+        const sha256 = /^sha256:/.test(asset.digest || '') ? asset.digest.slice(7) : ''
+        return { build, versionName: `ABS+ ${build}`, versionCode: 1000 + build, sha256, notes: rel.name || '', url: asset.browser_download_url, source: 'github' }
+      } catch (e) {
+        return null
+      }
+    },
     async check(force) {
       const base = (this.serverAddress || '').replace(/\/+$/, '')
-      if (!base || this.$platform !== 'android') return
+      if (this.$platform !== 'android') return
       if (!force && this.lastCheck && Date.now() - this.lastCheck < 10 * 60 * 1000) return
       this.lastCheck = Date.now()
       try {
         this.prefs = await AbsUpdater.getPrefs()
-        const r = await CapacitorHttp.get({ url: `${base}/abs-plus/app/latest.json`, connectTimeout: 8000, readTimeout: 8000 })
-        const j = typeof r.data === 'string' ? JSON.parse(r.data) : r.data
-        if (r.status !== 200 || !j || typeof j.build !== 'number') return
-        j.url = `${base}/abs-plus/app/ABS+.apk` // the address this phone already reaches the server at
+        // The ABS+ server first (fast, on your own network); GitHub too, so phones on a plain Audiobookshelf server
+        // (or a server that hasn't fetched the newest build yet) still get updates. The newer one wins.
+        const [fromServer, fromGitHub] = await Promise.all([this.latestFromServer(base), this.latestFromGitHub()])
+        const j = fromGitHub && (!fromServer || fromGitHub.build > fromServer.build) ? fromGitHub : fromServer
+        if (!j) return
         const changed = !this.latest || this.latest.build !== j.build
         this.latest = j
         if (j.build <= ABS_PLUS_BUILD || !changed && this.state !== 'available') return

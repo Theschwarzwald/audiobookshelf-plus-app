@@ -98,3 +98,7 @@ android/app/src/main/assets/transcription/
 # vendored at build time by scripts/fetch-foliate.sh
 static/reader/foliate/
 static/reader/pdfjs/
+
+# iOS speech engine, downloaded by ios/App/scripts/fetch-sherpa-onnx.sh
+ios/App/Frameworks/
+ios/App/App/transcription/sherpa/

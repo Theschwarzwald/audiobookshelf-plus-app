@@ -77,8 +77,22 @@ object SelfUpdate {
     return cm.activeNetwork != null && !cm.isActiveNetworkMetered
   }
 
-  /** The server's newest build: { build, sha256, size, notes, url } or null */
+  /** GitHub repository whose releases carry new builds (same as ABS_PLUS_RELEASES_REPO in plugins/absPlusBuild.js) */
+  private const val RELEASES_REPO = "Theschwarzwald/audiobookshelf-plus-server"
+
+  /**
+   * The newest build: { build, sha256, notes, url } or null. Asks the ABS+ server (fast, on your own network) and
+   * GitHub (so phones on a plain Audiobookshelf server, or a server that hasn't fetched the newest build yet, still
+   * get updates); the newer one wins, the server on a tie.
+   */
   fun latest(): JSONObject? {
+    val fromServer = try { latestFromServer() } catch (e: Exception) { null }
+    val fromGitHub = try { latestFromGitHub() } catch (e: Exception) { null }
+    if (fromGitHub != null && (fromServer == null || fromGitHub.optInt("build") > fromServer.optInt("build"))) return fromGitHub
+    return fromServer
+  }
+
+  private fun latestFromServer(): JSONObject? {
     val base = serverAddress() ?: return null
     val conn = URL("$base/abs-plus/app/latest.json").openConnection() as HttpURLConnection
     conn.connectTimeout = 10000
@@ -86,6 +100,39 @@ object SelfUpdate {
     return try {
       if (conn.responseCode != 200) null
       else JSONObject(conn.inputStream.bufferedReader().readText()).also { it.put("url", "$base/abs-plus/app/ABS+.apk") }
+    } finally {
+      conn.disconnect()
+    }
+  }
+
+  /** The latest GitHub release: its tag is v<build>; the APK is the asset named ABS-Plus.apk (or any .apk) */
+  private fun latestFromGitHub(): JSONObject? {
+    val conn = URL("https://api.github.com/repos/$RELEASES_REPO/releases/latest").openConnection() as HttpURLConnection
+    conn.connectTimeout = 10000
+    conn.readTimeout = 15000
+    conn.setRequestProperty("Accept", "application/vnd.github+json")
+    conn.setRequestProperty("User-Agent", "ABS+ (Android app)")
+    try {
+      if (conn.responseCode != 200) return null
+      val rel = JSONObject(conn.inputStream.bufferedReader().readText())
+      val build = rel.optString("tag_name").removePrefix("v").removePrefix("V").toIntOrNull() ?: return null
+      val assets = rel.optJSONArray("assets") ?: return null
+      var asset: JSONObject? = null
+      for (i in 0 until assets.length()) {
+        val a = assets.getJSONObject(i)
+        if (!a.optString("name").endsWith(".apk", ignoreCase = true)) continue
+        if (asset == null || a.optString("name") == "ABS-Plus.apk") asset = a
+      }
+      if (asset == null) return null
+      val digest = asset.optString("digest")
+      return JSONObject()
+        .put("build", build)
+        .put("versionName", "ABS+ $build")
+        .put("versionCode", 1000 + build)
+        .put("sha256", if (digest.startsWith("sha256:")) digest.removePrefix("sha256:") else "")
+        .put("notes", rel.optString("name"))
+        .put("url", asset.optString("browser_download_url"))
+        .put("source", "github")
     } finally {
       conn.disconnect()
     }

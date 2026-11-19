@@ -47,7 +47,8 @@ public class AbsDatabase: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "syncLocalSessionsWithServer", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "updateLocalMediaProgressFinished", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "updateDeviceSettings", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "updateLocalEbookProgress", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "updateLocalEbookProgress", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "updateLocalItemMetadata", returnType: CAPPluginReturnPromise)
     ]
 
     private let secureStorage = SecureStorage()
@@ -356,6 +357,37 @@ public class AbsDatabase: CAPPlugin, CAPBridgedPlugin {
             debugPrint(error)
             call.resolve(["error": "Failed to update ebook progress"])
             return
+        }
+    }
+
+    /**
+     * ABS+: a downloaded book keeps its own copy of the details (title, authors, series, description…) from when
+     * it was downloaded, so edits made on the server never showed for it. Called with the server's current
+     * metadata when the book page loads (or the server says the book changed): { localLibraryItemId, metadata }
+     */
+    @objc func updateLocalItemMetadata(_ call: CAPPluginCall) {
+        let localLibraryItemId = call.getString("localLibraryItemId", "")
+        guard let localLibraryItem = Database.shared.getLocalLibraryItem(localLibraryItemId: localLibraryItemId),
+              let media = localLibraryItem.media,
+              let md = call.getObject("metadata") else {
+            return call.resolve()
+        }
+        do {
+            let updated = try JSONDecoder().decode(Metadata.self, from: JSONSerialization.data(withJSONObject: md))
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            let before = try media.metadata.map { try encoder.encode($0) }
+            if try encoder.encode(updated) == before {
+                return call.resolve(["changed": false])
+            }
+            try localLibraryItem.update {
+                media.metadata = updated
+            }
+            AbsLogger.info(message: "updateLocalItemMetadata: \"\(updated.title)\" updated from the server")
+            call.resolve(["changed": true])
+        } catch {
+            AbsLogger.error(message: "updateLocalItemMetadata failed", error: error)
+            call.resolve(["changed": false, "error": error.localizedDescription])
         }
     }
 }

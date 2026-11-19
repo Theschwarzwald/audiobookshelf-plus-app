@@ -79,6 +79,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         )
         Realm.Configuration.defaultConfiguration = configuration
 
+        // ABS+: on-device transcription continues while charging and idle. BGTaskScheduler needs this before launch ends.
+        TranscriptionBackground.registerBackgroundTasks()
+
         return true
     }
 

@@ -6,6 +6,7 @@ Every release needs a new build number, in two places:
 
 - `plugins/absPlusBuild.js`: `export const ABS_PLUS_BUILD = 140`
 - `android/app/build.gradle`: `versionCode 1140` (always 1000 + the build number)
+- `ios/App/App/Info.plist`: `AbsPlusBuild` = 140 (the iOS app reports its ABS+ build from here)
 
 Android only installs a new APK over an old one when its `versionCode` is higher, and the app compares
 `ABS_PLUS_BUILD` with the server's to offer updates.

@@ -472,7 +472,7 @@ export default {
       return this.ebookFile
     },
     showTranscribe() {
-      return this.$platform === 'android' && !this.isPodcast && !!this.showPlay && !!this.transcriptKey
+      return ['android', 'ios'].includes(this.$platform) && !this.isPodcast && !!this.showPlay && !!this.transcriptKey
     },
     transcriptKey() {
       // Same key the player uses: server item id when linked, otherwise the local item id
@@ -971,7 +971,7 @@ export default {
     }
     this.init()
     this.loadTranscriptStatus()
-    if (this.$platform === 'android') {
+    if (['android', 'ios'].includes(this.$platform)) {
       Transcriber.addListener('onTranscriptionUpdate', this.onTranscriptionUpdate).then((h) => (this.transcriptListener = h))
     }
   },

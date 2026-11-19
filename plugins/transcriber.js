@@ -19,7 +19,8 @@ const updateListeners = new Set()
 let info = { at: 0, value: undefined }
 let pollTimer = null
 
-const isAndroid = () => Capacitor.getPlatform() === 'android'
+// Apps with the native AbsTranscriber plugin (Android, and iOS since ABS+ 141)
+const isNativeApp = () => ['android', 'ios'].includes(Capacitor.getPlatform())
 const nuxt = () => window.$nuxt
 
 async function api(method, path, data) {
@@ -76,7 +77,7 @@ async function pollServer() {
       const changed = !prev || prev.status !== st.status || prev.linesCount !== st.linesCount || prev.revision !== st.revision || prev.ebookCheck !== st.ebookCheck || prev.phase !== st.phase
       if (changed) emit({ ...st, source: 'server' })
       // Finished on the server: take a copy onto the phone, then read it from there
-      if (st.status === 'done' && !active && prev && prev.status !== 'done' && isAndroid()) {
+      if (st.status === 'done' && !active && prev && prev.status !== 'done' && isNativeApp()) {
         const res = await withTimeout(AbsTranscriber.syncTranscript({ key, pull: true }), 120000).catch(() => null)
         if (res && res.result === 'pulled') source.set(key, 'device')
       }
@@ -115,7 +116,7 @@ export const Transcriber = {
   async prepare(key) {
     if (!key) return { status: 'none' }
     const online = connected() && !key.startsWith('local_')
-    if (online && isAndroid()) {
+    if (online && isNativeApp()) {
       await withTimeout(AbsTranscriber.syncTranscript({ key, pull: true }), 20000).catch(() => null)
     }
     const local = await AbsTranscriber.getTranscriptStatus({ key }).catch(() => ({ key, status: 'none' }))
@@ -229,7 +230,7 @@ export const Transcriber = {
    * a transcript made on this phone is sent there first. The result reaches the phone with the next sync.
    */
   async checkWithEbook({ key }) {
-    if (!(await this.onServer(key)) && connected() && isAndroid()) {
+    if (!(await this.onServer(key)) && connected() && isNativeApp()) {
       await withTimeout(AbsTranscriber.syncTranscript({ key, pull: false }), 60000).catch(() => null)
     }
     if (!(await this.onServer(key))) throw new Error('Checking spelling against the book needs your server: connect and try again.')
@@ -242,7 +243,7 @@ export const Transcriber = {
    * A transcript made on this phone is copied to the server first.
    */
   async analyzeBook({ key }) {
-    if (!(await this.onServer(key)) && connected() && isAndroid()) {
+    if (!(await this.onServer(key)) && connected() && isNativeApp()) {
       await withTimeout(AbsTranscriber.syncTranscript({ key, pull: false }), 60000).catch(() => null)
     }
     if (!(await this.onServer(key))) throw new Error('Book analysis runs on your server: connect and try again.')
@@ -268,7 +269,7 @@ export const Transcriber = {
     if (await this.onServer(key)) {
       const res = await api('POST', `${itemPath(key)}/suggestions`, { ids, status })
       // the phone's offline copy follows
-      if (isAndroid()) withTimeout(AbsTranscriber.syncTranscript({ key, pull: true }), 60000).catch(() => null)
+      if (isNativeApp()) withTimeout(AbsTranscriber.syncTranscript({ key, pull: true }), 60000).catch(() => null)
       return res
     }
     return AbsTranscriber.updateSuggestions({ key, ids, status })
@@ -276,14 +277,15 @@ export const Transcriber = {
 
   /** Background sync of everything on the phone (after connecting to the server). */
   async syncAll() {
-    if (!isAndroid() || !connected()) return
+    if (!isNativeApp() || !connected()) return
     if (!(await this.serverInfo(true))) return
     AbsTranscriber.syncAll().catch(() => {})
   },
 
   /** Same events as AbsTranscriber; onTranscriptionUpdate also covers books the server is working on. */
   async addListener(event, cb) {
-    const native = await AbsTranscriber.addListener(event, cb)
+    // a missing native plugin mustn't stop following a transcription the server is doing
+    const native = await Promise.resolve(AbsTranscriber.addListener(event, cb)).catch(() => null)
     if (event !== 'onTranscriptionUpdate') return native
     updateListeners.add(cb)
     schedulePoll()

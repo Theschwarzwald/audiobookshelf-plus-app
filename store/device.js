@@ -100,7 +100,7 @@ export const getters = {
   ceiling: (state) => {
     const p = state.profile
     if (!p) return 'high'
-    if (p.lowRam || (p.ramMb && p.ramMb < 3800)) return 'low'
+    if (p.lowRam || (p.ramMb && p.ramMb < (p.manufacturer === 'Apple' ? 3000 : 3800))) return 'low'
     if (p.ramMb && p.ramMb < 5200) return 'mid'
     return 'high'
   },

@@ -358,7 +358,7 @@ export default {
     },
     showTranscriptionBtn() {
       // On-device transcription is implemented for Android only
-      return this.$platform === 'android' && !!this.mediaId
+      return ['android', 'ios'].includes(this.$platform) && !!this.mediaId
     },
     jumpForwardLabel() {
       return this.getJumpLabel(this.jumpForwardTime)

@@ -11,7 +11,7 @@ ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshe
 ABS+ was made by someone with only minimal programming knowledge. It was **vibe coded**: written with an AI coding assistant, guided by research into speech transcription methods and a lot of hands-on testing. It was built to fix one personal frustration, how hard it is to find your way around an audiobook, and grew from there.
 
 - **Tested:** the Android app, on an Android phone and a colour e-ink tablet, and the server and web player on a home Docker/Portainer setup.
-- **Not tested:** the iOS app. It has never been built or run (see *iOS status* below).
+- **Not tested:** the iOS app. Its ABS+ features are written (see *iOS status* below), but it has never been built or run: that needs a Mac with Xcode.
 - **Maintenance:** the creator doesn't expect to have time to maintain ABS+ regularly. Issues and pull requests may go unanswered for a long time. Forks are welcome.
 - **The hope:** that some of these ideas, such as read-along, word-timed transcripts and e-ink support, find their way back into the main [Audiobookshelf](https://github.com/advplyr/audiobookshelf) project, where they can be looked after properly.
 
@@ -73,7 +73,7 @@ These buttons are hidden for other users, and the server refuses the requests ev
 
 ✅ yes · ⚠️ partly · ❌ no · ➖ not applicable
 
-| Feature | Audiobookshelf app | ABS+ Android | ABS+ iOS (untested) | ABS+ web player |
+| Feature | Audiobookshelf app | ABS+ Android | ABS+ iOS (written, untested) | ABS+ web player |
 |---|:---:|:---:|:---:|:---:|
 | Play, download, offline listening | ✅ | ✅ | ✅ | ⚠️ play only |
 | Read-along card in the player | ❌ | ✅ | ✅ | ❌ |
@@ -81,20 +81,20 @@ These buttons are hidden for other users, and the server refuses the requests ev
 | Search what was said, tap to play | ❌ | ✅ | ✅ | ✅ |
 | Read along in the ebook | ❌ | ✅ | ✅ | ✅ |
 | Server transcription | ❌ | ✅ | ✅ | ✅ |
-| On-device transcription | ❌ | ✅ | ❌ | ➖ |
+| On-device transcription | ❌ | ✅ | ⚠️ while the app is open | ➖ |
 | Bookmarks with the quote and notes | ❌ | ✅ | ✅ | ✅ |
 | Notebook (all highlights, notes, bookmarks) | ❌ | ✅ | ✅ | ❌ |
-| Dictionary lookups | ❌ | ✅ online + offline | ⚠️ online only | ✅ online |
+| Dictionary lookups | ❌ | ✅ online + offline | ⚠️ online + iOS dictionary | ✅ online |
 | E-ink modes (black-and-white and colour) | ❌ | ✅ | ➖ | ⚠️ basic |
 | Parental controls | ❌ | ✅ | ✅ | ✅ |
-| Screen lock | ❌ | ✅ | ⚠️ in-app only | ❌ |
-| Lock-screen view of the line being read | ❌ | ✅ | ❌ | ➖ |
+| Screen lock | ❌ | ✅ | ⚠️ with Guided Access | ❌ |
+| Lock-screen view of the line being read | ❌ | ✅ | ✅ Live Activity (iOS 16.1+) | ➖ |
 | Dewey Decimal browsing | ❌ | ✅ | ✅ | ✅ |
 | Stats and reading history | ⚠️ totals | ✅ | ✅ | ✅ |
 | Based on Your Recent Readings | ❌ | ✅ | ✅ | ✅ |
-| Updates (from your ABS+ server or GitHub) | ❌ | ✅ | ❌ | ➖ |
+| Updates (from your ABS+ server or GitHub) | ❌ | ✅ | ⚠️ tells you, links to GitHub | ➖ |
 
-The iOS column is what the shared code should give an iPhone build. That build has never been made, so none of it is confirmed. For why some features are missing on iOS, see [Why some features aren't on iOS](#why-some-features-arent-on-ios). Features that need an ABS+ server (server transcription, parental controls, Dewey, sync) switch off against a plain Audiobookshelf server.
+The iOS column is what the iOS code is written to do. The iOS app has never been built or run, so none of it is confirmed yet. For why some features are missing on iOS, see [Why some features aren't on iOS](#why-some-features-arent-on-ios). Features that need an ABS+ server (server transcription, parental controls, Dewey, sync) switch off against a plain Audiobookshelf server.
 
 **What the main features do**
 
@@ -229,7 +229,7 @@ The app is the regular Audiobookshelf app (player, library, downloads, offline l
 - updates delivered from your own server
 - a lock-screen view of the line being narrated
 
-**iOS** builds from this same source. Transcripts made by the server or by an Android phone sync to it, and Lyrics, Karaoke, Read along, the readers, bookmarks and the Notebook are shared code, so they carry over. The iOS app has **not been built or tested yet**: building needs a Mac with Xcode.
+**iOS** builds from this same source. Lyrics, Karaoke, Read along, the readers, bookmarks and the Notebook are shared code, so they carry over, and the ABS+ native parts have iOS versions written in Swift (see *iOS status*). The iOS app has **not been built or tested yet**: building needs a Mac with Xcode, and some of it will likely need fixing on the first build.
 
 #### On-device transcription (Android)
 
@@ -259,58 +259,58 @@ There are two different reasons a feature is missing on iPhone and iPad. Some ca
 | Screen lock that blocks Home and Back | Apps can't pin themselves or block the Home gesture | iOS's own Guided Access (Settings → Accessibility) does exactly this |
 | Updates from your own server | iOS only installs apps from the App Store, TestFlight or approved alternative stores, so an app can't install its own update | TestFlight or an alternative store. The app can still tell you a new version is out |
 
-**2. Not written yet.** The rest needs only work. ABS+ adds five pieces of native Android code (written in Kotlin) for things web code can't do: the transcriber, dictionaries, device detection (battery, heat, e-ink, screen refresh), updates and page turns. iOS needs its own versions written in Swift, and building and testing them needs a Mac with Xcode, which the creator doesn't have. Offline dictionaries, device adaptation and Face ID / Touch ID unlock fall into this group.
+**2. Still to be done.** Downloaded (offline) StarDict dictionaries aren't ported to iOS yet, and on-device spelling checks against the ebook run on the ABS+ server instead of the phone. Everything else ABS+ needs natively has an iOS version written in Swift (below), untested until someone builds it on a Mac.
 
-Everything built from shared web code (the player, Lyrics, Karaoke, Read along, search, bookmarks, the Notebook, stats and recommendations) should work on iOS as it does on Android. It's still untested, because the iOS app has never been built.
+Everything built from shared web code (the player, Lyrics, Karaoke, Read along, search, bookmarks, the Notebook, stats and recommendations) should work on iOS as it does on Android.
 
 #### iOS status, feature by feature
 
-ABS+ added five native plugins on Android: AbsDevice, AbsTranscriber, AbsDictionary, AbsUpdater and AbsPageTurn. None has an iOS version yet; only the original Audiobookshelf plugins exist there. On iOS a call to a missing plugin fails. The app catches most of these and carries on, so an iPhone build should start and play, with the features below missing or showing an error.
+Since ABS+ 141 the iOS app has its own versions of the ABS+ native plugins (`ios/App/App/plugins/`), plus a Live Activity and on-device transcription. **All of it is written but has never been compiled or run.** Expect fixes on the first build.
 
-Each feature is marked by whether iOS itself stands in the way, and how close an iPhone can get:
+| Feature | Android | iOS (ABS+ 141, untested) | How |
+|---|---|---|---|
+| Transcripts on the phone and two-way sync | Yes | Written | `AbsTranscriber`: the same files and sync rules as Android, so server and Android transcripts are available on the iPhone, offline too |
+| On-device transcription | Yes | Written, needs the speech engine added | sherpa-onnx's iOS build with the same models. Runs while ABS+ is open; iOS may continue it while charging and idle. See below |
+| Lock-screen view of the line being read | Custom lock-screen view | Written (iOS 16.1+) | A **Live Activity**: the current line on the lock screen and in the Dynamic Island, from the same transcript hand-off Android uses |
+| Screen lock | Pins the app | Written | The in-app lock, with Face ID / Touch ID or the ABS+ PIN to unlock. iOS can't pin apps, so ABS+ points you to **Guided Access** (Settings → Accessibility → Guided Access, then triple-click the side button) and detects when it's on |
+| Face ID / Touch ID unlock | Yes | Written | LocalAuthentication. Devices without a sensor use the passcode or the ABS+ PIN |
+| Device adaptation (battery, heat, refresh rate, memory) | Yes | Written | Low Power Mode, thermal state, battery and memory warnings feed the same power-saving rules. ProMotion 120 Hz is switched on |
+| Dictionary | Online + offline | Written: online + iOS dictionary | The server dictionary and Wiktionary as on Android, plus a button for iOS's own dictionary card. Downloaded StarDict dictionaries aren't ported yet |
+| Updates | Downloads and installs the new APK | Written: tells you | iOS can't install apps itself. ABS+ can say a new version is out and opens the GitHub releases page |
+| Saving edited book details to downloaded books | Yes | Written | An addition to the iOS database plugin |
+| Page-turn animations | Off | Off | Not needed: page-turn animations are switched off |
 
-| Feature | Android | On iOS today | Blocked by iOS? | Closest iOS equivalent |
-|---|---|---|---|---|
-| On-device transcription | Yes | Not available (the phone can't transcribe; server and Android transcripts still sync and play) | **Partly.** On-device speech models are allowed, and the same engine (sherpa-onnx) has an iOS build. But iOS doesn't let an app run a long, heavy job in the background. | Transcribe while ABS+ is open and plugged in. Use a background processing task, which iOS runs overnight when the phone is charging and idle, to continue. Apple's own on-device speech recogniser is a lighter fallback |
-| Lock-screen view of the line being read | Custom lock-screen view | Not available | **Yes**: apps can't draw their own lock screen | A **Live Activity** shows the current line on the lock screen and in the **Dynamic Island**, updated while the book plays. The Now Playing controls can also show the line |
-| Screen lock (pin the app, block Home and Back) | Yes | The in-app touch lock works, but the app can't stop someone leaving it | **Yes**: apps can't pin themselves or block the Home gesture | iOS's own **Guided Access** (Accessibility settings, triple-click the side button) does exactly this. ABS+ can detect it and walk you through turning it on, keeping its own lock and the Face ID / PIN unlock on top. Keep-screen-on and dimming are allowed |
-| Updates from your own server | Downloads and installs the new APK | Not available | **Yes**: iOS only installs apps from the App Store, TestFlight, or approved alternative stores | **TestFlight**, or a sideloading store such as AltStore pointed at your server. The app can still check the server and say a new version is out |
-| Offline dictionaries (StarDict) | Yes | Lookups fail (the server dictionary still works online) | No, it just needs writing | Short term: iOS's **built-in dictionary** (the "Look Up" panel), which works offline in many languages. Later: the StarDict reader ported to Swift |
-| Device adaptation (battery, heat, refresh rate) | Yes | Falls back to safe defaults | No | Low Power Mode, thermal state and battery level are all readable on iOS. ProMotion 120 Hz needs one setting in the app's Info.plist |
-| Face ID / Touch ID unlock | Yes | Falls back to the ABS+ PIN | No | LocalAuthentication, a small plugin |
-| Page-turn animations | Yes | n/a | No | Not needed: page-turn animations are switched off |
-| Saving edited book details to downloaded books | Yes | Not saved on the phone (the server copy updates) | No | A small addition to the iOS database plugin |
+#### On-device transcription on iOS (written, untested)
 
-#### On-device transcription on iOS (not built yet)
-
-**On iPhone and iPad, transcription on the device isn't available yet.** Until it is, transcribe on the ABS+ server or an Android phone. The transcript then syncs to the iPhone and everything else works.
-
-How it's planned to work, and what you'll need to know when it arrives:
+The iPhone can transcribe a book itself with the same engine and models as Android, once the speech engine has been added to the build (see *Building from source*). Until someone has built and tested it, treat it as experimental. Transcribing on the ABS+ server or an Android phone always works, and the transcript then syncs to the iPhone.
 
 **Warnings**
 
-- **It needs the app open.** iOS doesn't let an app run a long, heavy job in the background. Unlike Android, transcription will only run while ABS+ is open on screen. If you switch apps or lock the phone, it pauses and carries on when you come back.
-- **Overnight help is up to iOS.** ABS+ can ask iOS to continue while the phone is charging and idle, for example overnight. iOS decides when and for how long, so this can't be counted on to finish a book.
-- **Battery and heat.** Transcribing works the processor hard. Keep the device plugged in. If iOS reports the device is getting hot, ABS+ pauses until it cools down, as it does on Android.
-- **Time.** Expect a 10-hour book to take hours, depending on the device and model. Recent iPhones and iPads with M-series chips are much faster than older models.
-- **Storage.** Each speech model is a one-time download of up to about 600 MB.
+- **It needs the app open.** iOS doesn't let an app run a long, heavy job in the background. Transcription runs while ABS+ is open on screen. If you switch apps or lock the phone, it saves its place and pauses, then carries on when you come back.
+- **Overnight help is up to iOS.** ABS+ asks iOS to continue while the phone is charging and idle, for example overnight. iOS decides when and for how long, so this can't be counted on to finish a book.
+- **Battery and heat.** Transcribing works the processor hard. Keep the device plugged in. When iOS reports the device is getting hot, ABS+ pauses until it cools down, as on Android.
+- **Memory.** Parakeet, the most accurate model, needs a lot of memory and may not run on iPhones with 4 GB. Whisper Small or Moonshine are lighter.
+- **Time.** Expect a 10-hour book to take hours, depending on the device and model.
+- **Storage.** Each speech model is a one-time download of up to about 650 MB.
+- **Audio formats.** Ogg, Opus and WMA audio can't be decoded on iOS; MP3, M4A/M4B, AAC and FLAC can.
 
-**Instructions (once available)**
+**Instructions**
 
 1. Plug the device in.
 2. Open the book, then **Transcription**, then **⋮ → Transcribe on this phone…**, and pick a model. Parakeet is the most accurate for English and European languages; Whisper covers the rest.
 3. To keep the screen on while it works, turn on the screen lock. It dims the screen and ignores touches, so the job keeps running.
 4. Leave ABS+ open. Progress, speed and time left show in the Transcription view. If you leave, it pauses and resumes when you return.
-5. When it finishes, the transcript syncs to the server the next time you're online, as on Android.
+5. When it finishes, an admin's transcript syncs to the server the next time you're online, as on Android. For other users it stays on the phone.
 
 **Android and iOS compared**
 
-| | Android | iOS (planned) |
+| | Android | iOS |
 |---|---|---|
 | Runs in the background | Yes, as a background job with a notification. Android 15+ limits it to about 6 h a day | Only while the app is open; iOS may continue it while charging and idle |
-| Engine and models | sherpa-onnx: Parakeet, Whisper, Moonshine | The same engine and models (iOS build of sherpa-onnx) |
+| Engine and models | sherpa-onnx: Parakeet, Whisper, Moonshine | The same engine and models (sherpa-onnx's iOS build). Models download file by file |
 | Survives switching apps | Yes | Pauses, then resumes when you return |
-| Pauses when hot or low on battery | Yes | Yes |
+| Pauses when hot | Yes | Yes |
+| Spelling check against the ebook | On the phone | On the ABS+ server |
 | Syncs to the server | Yes | Yes |
 
 ### Where things live in this code
@@ -341,7 +341,7 @@ After that the app keeps itself up to date: it checks your ABS+ server and GitHu
 
 Android asks you to allow installs from that source the first time. The app installs alongside the official Audiobookshelf app.
 
-The iOS app hasn't been built yet (see *iOS status* above).
+The iOS app hasn't been built yet: build it yourself on a Mac (below). Its ABS+ features are written but untested (see *iOS status* above).
 
 ## Building from source
 
@@ -395,7 +395,32 @@ After changing the JavaScript, rebuild and copy it into the native projects:
 npm run sync
 ```
 
-Before a release, raise the build number in `plugins/absPlusBuild.js` (the Android `versionCode` is 1000 + build), so phones see the new APK as an update.
+Before a release, raise the build number in `plugins/absPlusBuild.js`, `android/app/build.gradle` (`versionCode` = 1000 + build) and `ios/App/App/Info.plist` (`AbsPlusBuild`), so phones see the new build as an update.
+
+### iOS (on a Mac, untested)
+
+The iOS project needs two one-time setup steps on top of the usual `npx cap sync ios`, both run from the repository root. They use scripts in `ios/App/scripts/`; the Ruby ones need the `xcodeproj` gem, which comes with CocoaPods.
+
+1. **The speech engine for on-device transcription** (optional: without it, the app works and syncs transcripts, but can't transcribe on the phone):
+   ```bash
+   bash ios/App/scripts/fetch-sherpa-onnx.sh
+   ruby ios/App/scripts/add-sherpa-onnx.rb
+   ```
+   The first downloads sherpa-onnx's iOS framework (same version as Android) into `ios/App/Frameworks/`; the second links it into the Xcode project. `ruby ios/App/scripts/add-sherpa-onnx.rb --remove` takes it out again.
+2. **The Live Activity** (the line being read on the lock screen, iOS 16.1+):
+   ```bash
+   ruby ios/App/scripts/add-live-activity-target.rb
+   ```
+   It adds the widget extension target to the Xcode project.
+
+Then:
+
+```bash
+cd ios/App && pod install && cd ../..
+npx cap open ios
+```
+
+In Xcode, set your signing team for the app and, if you added it, the **AbsPlusLiveActivity** target (Signing & Capabilities), then build. Expect some fixes on the first build: none of the ABS+ iOS code has been compiled yet. Please share what you had to change.
 
 ## Licence
 
