@@ -48,7 +48,7 @@ cd android && ./gradlew assembleDebug
 ```
 
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Attach it to a release with
-`gh release create v140 app-debug.apk --target abs-plus`, or on the website under **Releases → Draft a new release**.
+`gh release create v140 ABS-Plus.apk --target abs-plus` (rename `app-debug.apk` to `ABS-Plus.apk` first), or on the website under **Releases → Draft a new release**.
 
 ## 3. Offer it from ABS+ servers
 
@@ -58,8 +58,8 @@ fetch new builds by themselves from the releases of the
 there, tagged `v<build>` (for example `v140`), and every ABS+ server picks it up within 12 hours. Phones also check
 that repository's latest release themselves.
 
-Attach the APK twice: as `ABS-Plus-<build>.apk`, and as `ABS-Plus.apk` (the readmes' download links point at
-`releases/latest/download/ABS-Plus.apk`, which always serves the newest release's file of that name). Do the same
+Attach the APK once, named `ABS-Plus.apk` (the tag says which build it is). The readmes' download links point at
+`releases/latest/download/ABS-Plus.apk`, which always serves the newest release's file of that name. Do the same
 in this repository's releases.
 
 To put a build on one server straight away, use `publish-app.js` from the server repository:
