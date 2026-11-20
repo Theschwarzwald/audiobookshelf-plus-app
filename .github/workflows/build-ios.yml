@@ -67,6 +67,26 @@ jobs:
           path: ios/App/build/Build/Products/Debug-iphonesimulator/Audiobookshelf.app
           if-no-files-found: error
 
+      # ABS+: run the build in the iOS simulator; screenshots and the app's log are kept as the "ios-simulator-screens" artifact
+      - name: Install idb (taps in the simulator)
+        continue-on-error: true
+        run: |
+          brew tap facebook/fb
+          brew install idb-companion
+          python3 -m pip install --break-system-packages fb-idb || pipx install fb-idb
+
+      - name: Run in the simulator and take screenshots
+        continue-on-error: true
+        run: python3 ios/App/scripts/ci-simulator-screens.py "$(ls -d ios/App/build/Build/Products/Debug-iphonesimulator/*.app | head -1)" sim-screens
+
+      - name: Keep the screenshots and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-screens
+          path: sim-screens
+          if-no-files-found: warn
+
   # ABS+: the same build with the optional iOS parts added by ios/App/scripts (the speech engine for
   # on-device transcription, and the Live Activity widget extension), so all of the iOS code gets compiled.
   build-full:
