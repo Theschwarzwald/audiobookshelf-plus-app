@@ -21,11 +21,13 @@
     <app-side-drawer :key="currentLang" />
     <readers-reader />
 
-    <!-- first start, tutorial, guided tour, "it's been a while" -->
-    <onboarding-first-run-setup v-if="onboarding.showSetup" />
-    <onboarding-tutorial v-else-if="onboarding.showTutorial" />
-    <onboarding-welcome-back v-else-if="onboarding.showWelcomeBack" />
-    <onboarding-coach-tour />
+    <!-- first start, tutorial, guided tour, "it's been a while": only once signed in to a server -->
+    <template v-if="signedIn">
+      <onboarding-first-run-setup v-if="onboarding.showSetup" />
+      <onboarding-tutorial v-else-if="onboarding.showTutorial" />
+      <onboarding-welcome-back v-else-if="onboarding.showWelcomeBack" />
+      <onboarding-coach-tour />
+    </template>
     <!-- ABS+: "Update available" when the server has a newer build of this app -->
     <app-update-banner />
   </div>
@@ -105,6 +107,10 @@ export default {
   computed: {
     onboarding() {
       return this.$store.state.onboarding
+    },
+    /** The first-run screens wait until someone has signed in (never over the connect screen) */
+    signedIn() {
+      return !!this.$store.state.user.user && this.$route.name !== 'connect'
     },
     isPlayerOpen() {
       return this.$store.getters['getIsPlayerOpen']

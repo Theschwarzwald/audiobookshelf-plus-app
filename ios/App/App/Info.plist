@@ -74,7 +74,7 @@
 	<true/>
 	<!-- ABS+ -->
 	<key>AbsPlusBuild</key>
-	<integer>141</integer>
+	<integer>142</integer>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
