@@ -332,18 +332,6 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				4D8D412C26E187E400BA5F0D /* App-Bridging-Header.h */,
 				4DFE2DA22D345C390000B204 /* MyViewController.swift */,
-				767C163BE26DAAB3EB45BE62 /* AudioDecoder.swift */,
-				B4EDF3AD924557C91CE0B0CE /* LineSplitter.swift */,
-				B1303DCE65B8A66F036C7D07 /* SherpaBridge.swift */,
-				AEF0352C59B2475C6A6B9F53 /* TranscriptModels.swift */,
-				70A04C5EF6D01CDC757C08C3 /* TranscriptStore.swift */,
-				41F0D337A1CB6D0C8328283F /* TranscriptSync.swift */,
-				0B4A4E8A5731AF4FF1F12371 /* TranscriptionBackground.swift */,
-				3F425FEB8594610933925E8A /* TranscriptionEngine.swift */,
-				104F05EA14F73CD61C8467FA /* TranscriptionHub.swift */,
-				A4213D375428CEA19A2571D1 /* TranscriptionModels.swift */,
-				1460C83E1957EFDCECA4E1A0 /* TxDownloader.swift */,
-				96B5FCAEF2F6ABDFA76CF03B /* TxSupport.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -433,6 +421,18 @@
 		B2D5368B10F3A180621A26F6 /* transcription */ = {
 			isa = PBXGroup;
 			children = (
+				767C163BE26DAAB3EB45BE62 /* AudioDecoder.swift */,
+				B4EDF3AD924557C91CE0B0CE /* LineSplitter.swift */,
+				B1303DCE65B8A66F036C7D07 /* SherpaBridge.swift */,
+				AEF0352C59B2475C6A6B9F53 /* TranscriptModels.swift */,
+				70A04C5EF6D01CDC757C08C3 /* TranscriptStore.swift */,
+				41F0D337A1CB6D0C8328283F /* TranscriptSync.swift */,
+				0B4A4E8A5731AF4FF1F12371 /* TranscriptionBackground.swift */,
+				3F425FEB8594610933925E8A /* TranscriptionEngine.swift */,
+				104F05EA14F73CD61C8467FA /* TranscriptionHub.swift */,
+				A4213D375428CEA19A2571D1 /* TranscriptionModels.swift */,
+				1460C83E1957EFDCECA4E1A0 /* TxDownloader.swift */,
+				96B5FCAEF2F6ABDFA76CF03B /* TxSupport.swift */,
 			);
 			path = transcription;
 			sourceTree = "<group>";
