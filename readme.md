@@ -265,9 +265,9 @@ Everything built from shared web code (the player, Lyrics, Karaoke, Read along, 
 
 #### iOS status, feature by feature
 
-Since ABS+ 141 the iOS app has its own versions of the ABS+ native plugins (`ios/App/App/plugins/`), plus a Live Activity and on-device transcription. **All of it compiles, but none of it has been run yet.** Expect fixes once it is tried on a device.
+The iOS app has its own versions of the ABS+ native plugins (`ios/App/App/plugins/`), plus a Live Activity and on-device transcription. **All of it compiles, but none of it has been run yet.** Expect fixes once it is tried on a device.
 
-| Feature | Android | iOS (ABS+ 141, compiles, untested) | How |
+| Feature | Android | iOS (compiles, untested) | How |
 |---|---|---|---|
 | Transcripts on the phone and two-way sync | Yes | Written | `AbsTranscriber`: the same files and sync rules as Android, so server and Android transcripts are available on the iPhone, offline too |
 | On-device transcription | Yes | Written, needs the speech engine added | sherpa-onnx's iOS build with the same models. Runs while ABS+ is open; iOS may continue it while charging and idle. See below |

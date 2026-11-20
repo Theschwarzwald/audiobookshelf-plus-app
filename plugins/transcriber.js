@@ -19,7 +19,7 @@ const updateListeners = new Set()
 let info = { at: 0, value: undefined }
 let pollTimer = null
 
-// Apps with the native AbsTranscriber plugin (Android, and iOS since ABS+ 141)
+// Apps with the native AbsTranscriber plugin (Android and iOS)
 const isNativeApp = () => ['android', 'ios'].includes(Capacitor.getPlatform())
 const nuxt = () => window.$nuxt
 

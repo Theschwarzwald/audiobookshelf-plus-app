@@ -4,9 +4,9 @@
 
 Every release needs a new build number, in two places:
 
-- `plugins/absPlusBuild.js`: `export const ABS_PLUS_BUILD = 140`
-- `android/app/build.gradle`: `versionCode 1140` (always 1000 + the build number)
-- `ios/App/App/Info.plist`: `AbsPlusBuild` = 140 (the iOS app reports its ABS+ build from here)
+- `plugins/absPlusBuild.js`: `export const ABS_PLUS_BUILD = <build>`
+- `android/app/build.gradle`: `versionCode <1000 + build>` (always 1000 + the build number)
+- `ios/App/App/Info.plist`: `AbsPlusBuild` = `<build>` (the iOS app reports its ABS+ build from here)
 
 Android only installs a new APK over an old one when its `versionCode` is higher, and the app compares
 `ABS_PLUS_BUILD` with the server's to offer updates.
@@ -32,7 +32,7 @@ GitHub release whenever a tag starting with `v` is pushed.
    later update must be signed with the same key.
 3. Commit the new build number, then tag and push:
    ```bash
-   git tag v140 && git push origin v140
+   git tag v<build> && git push origin v<build>
    ```
 4. The workflow runs for about 10 minutes and the APK appears under **Releases**.
 
@@ -48,14 +48,14 @@ cd android && ./gradlew assembleDebug
 ```
 
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Attach it to a release with
-`gh release create v140 ABS-Plus.apk --target abs-plus` (rename `app-debug.apk` to `ABS-Plus.apk` first), or on the website under **Releases → Draft a new release**.
+`gh release create v<build> ABS-Plus.apk --target abs-plus` (rename `app-debug.apk` to `ABS-Plus.apk` first), or on the website under **Releases → Draft a new release**.
 
 ## 3. Offer it from ABS+ servers
 
 Phones connected to an ABS+ server show **Update available** when the server has a newer build. ABS+ servers
 fetch new builds by themselves from the releases of the
 [server repository](https://github.com/Theschwarzwald/audiobookshelf-plus-server): attach the APK to a release
-there, tagged `v<build>` (for example `v140`), and every ABS+ server picks it up within 12 hours. Phones also check
+there, tagged `v<build>`, and every ABS+ server picks it up within 12 hours. Phones also check
 that repository's latest release themselves.
 
 Attach the APK once, named `ABS-Plus.apk` (the tag says which build it is). The readmes' download links point at
@@ -65,7 +65,7 @@ in this repository's releases.
 To put a build on one server straight away, use `publish-app.js` from the server repository:
 
 ```bash
-node publish-app.js path/to/app.apk 140 "What's new, in a sentence or two"
+node publish-app.js path/to/ABS-Plus.apk <build> "What's new, in a sentence or two"
 ```
 
 `publish-app.js` deploys through Portainer: set your Portainer address in `PORTAINER_URL` (or a
