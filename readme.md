@@ -99,14 +99,35 @@ The iOS column is what the iOS code is written to do. It compiles, but the iOS a
 **What the main features do**
 
 - **Read-along card:** the spoken word sits in the centre of the player and is highlighted as it's heard, with the sentences before and after.
-- **Lyrics and Karaoke:** Lyrics shows timed lines that follow the narration. Karaoke shows the book as paragraphs, with each word marked as it's narrated.
+- **Three read modes (Lyrics, Karaoke, Read along):** three ways to follow the narration as text, explained in *The three read modes* below.
 - **Search what was said:** find any passage by its words instead of scrubbing, then tap a line to play from there.
-- **Read along in the ebook:** the narrated word is highlighted in the book's own text and pages turn with the voice. Tap any word to play from it.
 - **Bookmarks with the quote:** tap for the moment, hold to save a whole section, and add notes. The Notebook collects every highlight, note and bookmark.
 - **Dictionary:** long-press a word. Lookups use offline StarDict dictionaries, the server's dictionaries, then Wiktionary.
 - **Screens:** e-ink (below), OLED/HDR true black, phones, tablets and landscape, colour-vision options, and power saving that slows animations on low battery.
 - **Parental controls:** age tags on every book, per-person age limits and per-book blocks, enforced by Audiobookshelf itself.
 - **Browsing:** a Dewey Decimal tab, plus richer metadata, covers and author bios from several sources.
+
+### The three read modes
+
+Tap **Transcription** in the player to open the book's text. A switcher at the top changes between three views of the same narration. All three follow the voice as it plays, all three can be searched, and tapping text jumps the audio to that spot.
+
+| | **Lyrics** | **Karaoke** | **Read along** |
+|---|---|---|---|
+| **What you see** | The transcript as short lines, each with its time, like song lyrics | The book as ordinary paragraphs, like a page of text | The ebook itself, with its own layout, chapters and pages |
+| **What's highlighted** | The line being spoken. Lines already heard are dimmed | The word being spoken, inside its paragraph | The word being spoken, in the book's own text |
+| **How it moves** | Scrolls a line at a time, keeping the current line in view | Keeps the current paragraph near the top and the word on screen. On phones the highlight slides from word to word | Turns pages (or scrolls) with the narration |
+| **Tap to** | Play from that line | Play from that word | Play from that word |
+| **Needs** | A transcript | A transcript | A transcript and the book's ebook (EPUB) on the same item |
+| **Comes from** | `.lrc` (line times) | `_karaoke.lrc` (word times) | `_karaoke.lrc` word times matched to the ebook's words |
+| **Best for** | Skimming, finding a passage, seeing where you are at a glance | Reading along closely without an ebook | Reading the real book while you listen |
+
+**Lyrics** is the simplest view and the quickest to scan. Each line shows its time on the left, so it doubles as a table of contents for what was said. Searching in Lyrics lists every matching line (in Karaoke, every matching paragraph), and tapping one plays from there.
+
+**Karaoke** shows the narration as continuous paragraphs, so it reads like a book rather than a list. The spoken word is marked as it's heard (on e-ink, three words are boxed at once, see *E-ink readers*). If the book has an ebook and the ebook check has run, Karaoke uses the **ebook's own paragraphs, spelling and punctuation**, with each ebook word given the time of the matching spoken word. Without an ebook it groups the transcript into paragraphs at pauses. Parts the narration doesn't cover, such as front matter, are shown but not highlighted.
+
+**Read along** opens the ebook inside the Transcription panel and highlights the narrated word in it, turning pages as the narrator goes. It only appears for books that have an ebook. EPUBs open in the panel; PDF, MOBI and other formats open in the full reader in Read along. Where the narration leaves the text (an introduction the narrator added, or a different edition), a small note says so, and the highlight picks up again where the two match. Read along keeps following in the background while you're in Lyrics or Karaoke, so switching back is instant.
+
+You can also open any of the three from the book's page without playing, to read the transcript on its own. Tap a passage and **Play from here** starts listening at that spot.
 
 ### Stats and reading history
 
