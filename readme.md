@@ -1,4 +1,4 @@
-# ABS+ (Audiobookshelf Plus)
+# ABS+ (Audiobookshelf Plus) (audiobook transcription)
 
 ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshelf), the self-hosted audiobook and podcast server. This repository is the **ABS+ app** for Android and iOS, a fork of the [Audiobookshelf app](https://github.com/advplyr/audiobookshelf-app). The optional server add-on, which runs beside an unmodified Audiobookshelf container, is in its own repository: [audiobookshelf-plus-server](https://github.com/Theschwarzwald/audiobookshelf-plus-server).
 
