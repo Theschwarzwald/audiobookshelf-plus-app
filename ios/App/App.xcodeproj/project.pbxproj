@@ -313,7 +313,6 @@
 			children = (
 				504EC3041FED79650016851F /* Audiobookshelf.app */,
 				E9E8813A28DA5DE500D750C1 /* AudiobookshelfUnitTests.xctest */,
-				B2D5368B10F3A180621A26F6 /* transcription */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -332,6 +331,7 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				4D8D412C26E187E400BA5F0D /* App-Bridging-Header.h */,
 				4DFE2DA22D345C390000B204 /* MyViewController.swift */,
+				B2D5368B10F3A180621A26F6 /* transcription */,
 			);
 			path = App;
 			sourceTree = "<group>";

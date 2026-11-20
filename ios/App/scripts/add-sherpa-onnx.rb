@@ -128,7 +128,7 @@ if use_engine
 
   present.each do |name|
     xc = File.join(frameworks_dir, name)
-    ref = engine_group.new_reference("Frameworks/#{name}", :source_root)
+    ref = engine_group.new_reference("Frameworks/#{name}", :project)
     ref.last_known_file_type = 'wrapper.xcframework'
     ref.name = name
     target.frameworks_build_phase.add_file_reference(ref, true)
