@@ -11,7 +11,7 @@ ABS+ adds read-along to [Audiobookshelf](https://github.com/advplyr/audiobookshe
 ABS+ was made by someone with only minimal programming knowledge. It was **vibe coded**: written with an AI coding assistant, guided by research into speech transcription methods and a lot of hands-on testing. It was built to fix one personal frustration, how hard it is to find your way around an audiobook, and grew from there.
 
 - **Tested:** the Android app, on an Android phone and a colour e-ink tablet, and the server and web player on a home Docker/Portainer setup.
-- **Not tested:** the iOS app. Its ABS+ features are written (see *iOS status* below), but it has never been built or run: that needs a Mac with Xcode.
+- **Not tested:** the iOS app. Its ABS+ features are written and compile (GitHub builds it on every change), but it has never been run on an iPhone or iPad.
 - **Maintenance:** the creator doesn't expect to have time to maintain ABS+ regularly. Issues and pull requests may go unanswered for a long time. Forks are welcome.
 - **The hope:** that some of these ideas, such as read-along, word-timed transcripts and e-ink support, find their way back into the main [Audiobookshelf](https://github.com/advplyr/audiobookshelf) project, where they can be looked after properly.
 
@@ -73,7 +73,7 @@ These buttons are hidden for other users, and the server refuses the requests ev
 
 ✅ yes · ⚠️ partly · ❌ no · ➖ not applicable
 
-| Feature | Audiobookshelf app | ABS+ Android | ABS+ iOS (written, untested) | ABS+ web player |
+| Feature | Audiobookshelf app | ABS+ Android | ABS+ iOS (compiles, untested) | ABS+ web player |
 |---|:---:|:---:|:---:|:---:|
 | Play, download, offline listening | ✅ | ✅ | ✅ | ⚠️ play only |
 | Read-along card in the player | ❌ | ✅ | ✅ | ❌ |
@@ -94,7 +94,7 @@ These buttons are hidden for other users, and the server refuses the requests ev
 | Based on Your Recent Readings | ❌ | ✅ | ✅ | ✅ |
 | Updates (from your ABS+ server or GitHub) | ❌ | ✅ | ⚠️ tells you, links to GitHub | ➖ |
 
-The iOS column is what the iOS code is written to do. The iOS app has never been built or run, so none of it is confirmed yet. For why some features are missing on iOS, see [Why some features aren't on iOS](#why-some-features-arent-on-ios). Features that need an ABS+ server (server transcription, parental controls, Dewey, sync) switch off against a plain Audiobookshelf server.
+The iOS column is what the iOS code is written to do. It compiles, but the iOS app has never been run, so none of it is confirmed yet. For why some features are missing on iOS, see [Why some features aren't on iOS](#why-some-features-arent-on-ios). Features that need an ABS+ server (server transcription, parental controls, Dewey, sync) switch off against a plain Audiobookshelf server.
 
 **What the main features do**
 
@@ -229,7 +229,7 @@ The app is the regular Audiobookshelf app (player, library, downloads, offline l
 - updates delivered from your own server
 - a lock-screen view of the line being narrated
 
-**iOS** builds from this same source. Lyrics, Karaoke, Read along, the readers, bookmarks and the Notebook are shared code, so they carry over, and the ABS+ native parts have iOS versions written in Swift (see *iOS status*). The iOS app has **not been built or tested yet**: building needs a Mac with Xcode, and some of it will likely need fixing on the first build.
+**iOS** builds from this same source. Lyrics, Karaoke, Read along, the readers, bookmarks and the Notebook are shared code, so they carry over, and the ABS+ native parts have iOS versions written in Swift (see *iOS status*). The iOS app **compiles** (GitHub's *Build iOS* check builds it, with and without the speech engine and Live Activity, on every change) but has **not been run or tested** on a device yet.
 
 #### On-device transcription (Android)
 
@@ -265,9 +265,9 @@ Everything built from shared web code (the player, Lyrics, Karaoke, Read along, 
 
 #### iOS status, feature by feature
 
-Since ABS+ 141 the iOS app has its own versions of the ABS+ native plugins (`ios/App/App/plugins/`), plus a Live Activity and on-device transcription. **All of it is written but has never been compiled or run.** Expect fixes on the first build.
+Since ABS+ 141 the iOS app has its own versions of the ABS+ native plugins (`ios/App/App/plugins/`), plus a Live Activity and on-device transcription. **All of it compiles, but none of it has been run yet.** Expect fixes once it is tried on a device.
 
-| Feature | Android | iOS (ABS+ 141, untested) | How |
+| Feature | Android | iOS (ABS+ 141, compiles, untested) | How |
 |---|---|---|---|
 | Transcripts on the phone and two-way sync | Yes | Written | `AbsTranscriber`: the same files and sync rules as Android, so server and Android transcripts are available on the iPhone, offline too |
 | On-device transcription | Yes | Written, needs the speech engine added | sherpa-onnx's iOS build with the same models. Runs while ABS+ is open; iOS may continue it while charging and idle. See below |
@@ -397,7 +397,7 @@ npm run sync
 
 Before a release, raise the build number in `plugins/absPlusBuild.js`, `android/app/build.gradle` (`versionCode` = 1000 + build) and `ios/App/App/Info.plist` (`AbsPlusBuild`), so phones see the new build as an update.
 
-### iOS (on a Mac, untested)
+### iOS (on a Mac)
 
 The iOS project needs two one-time setup steps on top of the usual `npx cap sync ios`, both run from the repository root. They use scripts in `ios/App/scripts/`; the Ruby ones need the `xcodeproj` gem, which comes with CocoaPods.
 
@@ -420,7 +420,7 @@ cd ios/App && pod install && cd ../..
 npx cap open ios
 ```
 
-In Xcode, set your signing team for the app and, if you added it, the **AbsPlusLiveActivity** target (Signing & Capabilities), then build. Expect some fixes on the first build: none of the ABS+ iOS code has been compiled yet. Please share what you had to change.
+In Xcode, set your signing team for the app and, if you added it, the **AbsPlusLiveActivity** target (Signing & Capabilities), then build. The same steps run on GitHub for every change (`.github/workflows/build-ios.yml`), so the project should compile; running it on a device is still untested. Please share what you find.
 
 ## Licence
 
