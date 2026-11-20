@@ -72,6 +72,7 @@ jobs:
         continue-on-error: true
         run: |
           brew tap facebook/fb
+          brew trust facebook/fb || true   # newer Homebrew asks before using a third-party tap
           brew install idb-companion
           python3 -m pip install --break-system-packages fb-idb || pipx install fb-idb
 
